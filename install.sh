@@ -69,15 +69,18 @@ if echo "$CHOICES" | grep -q "2"; then
 fi
 
 # ── Вспомогательная функция установки скиллов ──────────────────
+# Ищет SKILL.md на любой глубине (skills-base/skill/ или
+# skills-base/category/skill/) — работает и с плоской, и с
+# категоризированной структурой.
 install_skills_to() {
   local src="$1" dst="$2" label="$3"
   local count=0
   mkdir -p "$dst"
-  for skill in "$src"/*/; do
-    [ -d "$skill" ] || continue
+  while IFS= read -r -d '' skill_md; do
+    skill="$(dirname "$skill_md")"
     cp -r "$skill" "$dst/"
     count=$((count+1))
-  done
+  done < <(find "$src" -mindepth 1 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
   echo "  ✅ $label: $count скиллов → $dst"
 }
 
@@ -95,11 +98,11 @@ if echo "$CHOICES" | grep -qE "1|2"; then
   $HAS_CODEX    && install_skills_to "$BASE" "$CODEX_SKILLS"  "Codex"
   if $HAS_OPENCLAW && [ -f "$OPENCLAW_DIR/CLAUDE.md" ]; then
     printf "\n## FreeMind Skills\n" >> "$OPENCLAW_DIR/CLAUDE.md"
-    for skill in "$BASE"/*/; do
-      name=$(basename "$skill")
-      desc=$(grep "^description:" "$skill/SKILL.md" 2>/dev/null | head -1 | sed 's/description: //')
+    while IFS= read -r -d '' skill_md; do
+      name=$(basename "$(dirname "$skill_md")")
+      desc=$(grep "^description:" "$skill_md" 2>/dev/null | head -1 | sed 's/description: //')
       echo "- **$name**: $desc" >> "$OPENCLAW_DIR/CLAUDE.md"
-    done
+    done < <(find "$BASE" -mindepth 1 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
     echo "  ✅ OpenClaw: скиллы добавлены"
   fi
   # ChatGPT файл
