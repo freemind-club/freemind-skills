@@ -6,5 +6,9 @@
 |-----------|-----------|
 | [hermes-ecosystem/](hermes-ecosystem/) | Скиллы для Hermes-agent — отдельная экосистема, которую мы реально используем (kanban) |
 | [agent-tooling/](agent-tooling/) | Мета-инструменты для агентов: генераторы CLI, загрузчики и т.д. |
+| [claude-code-extras/](claude-code-extras/) | Скиллы и подходы для Claude Code сверх built-in — research, wiki-документация, сабагенты |
+| [dev-tools/](dev-tools/) | Бесплатные сервисы и библиотеки для разработки: мониторинг, email, структурированный LLM-вывод |
+| [local-llm/](local-llm/) | Локальный запуск LLM и бесплатные роутеры к облачным моделям |
+| [niche-specialized/](niche-specialized/) | Вне нашего фокуса (OSINT, мобильная разработка) — записано на случай если пригодится студентам клуба |
 
 ← [На главную](../README.md)
