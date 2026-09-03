@@ -6,6 +6,18 @@
 
 ---
 
+## ⚡ [Директор](director/) — флагман
+
+Мастер, который под интервью собирает **персонального AI-директора**: оркестратор с памятью между сессиями, протоколами, правилами безопасности, самоулучшением. 8 сред (Claude Code, Hermes, Cursor, Codex, Qwen, n8n…). Нужен **промокод клуба**.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/freemind-club/freemind-skills/main/director/install.sh | bash
+```
+
+Нет промокода → [director/README.md](director/README.md) · [t.me/Lavrentev_Oleg](https://t.me/Lavrentev_Oleg) · [клуб](https://lavrentevoleg.ru/social/club)
+
+---
+
 ## Что здесь есть (бесплатно)
 
 | Раздел | Что внутри |

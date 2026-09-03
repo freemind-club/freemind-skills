@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Откат установки директора к снимку {{BACKUP_TS}}
+# Запуск:  bash ~/.director-backup/{{BACKUP_TS}}/restore.sh
+# Возвращает конфиги, инструкции агента и удаляет собранного директора.
+
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
+say "Откат директора к снимку {{BACKUP_TS}}"
+
+# 1. Вернуть файлы (список формируется визардом на Шаге 0.6)
+{{RESTORE_FILE_LINES}}
+# пример строки:
+#   mkdir -p "$(dirname "$HOME/.claude/mcp.json")"; cp -f "$HERE/files/claude__mcp.json" "$HOME/.claude/mcp.json"; echo "  ~ ~/.claude/mcp.json"
+
+# 2. Удалить собранного директора (его до установки не было — либо был свой, восстановлен выше)
+{{REMOVE_DIRECTOR_LINES}}
+# пример:  rm -rf "$HOME/.claude/skills/my-director"; echo "  - удалён ~/.claude/skills/my-director"
+
+# 3. БД: дампы лежат в $HERE/db/*.sql.gz — восстанавливать вручную (перезапись БД не автомат):
+#    gunzip -c "$HERE/db/brain.sql.gz" | docker exec -i lightrag-postgres psql -U rag -d brain
+{{DB_RESTORE_HINT}}
+
+say "Готово. Сверься с MANIFEST.md — состояние должно совпасть."
+echo "MCP до установки:"; sed -n '/## MCP/,/## /p' "$HERE/MANIFEST.md" 2>/dev/null || true

@@ -1,0 +1,41 @@
+# Адаптер: Cursor / Cline / Windsurf
+
+IDE-агенты. MCP есть, субагентов нет, интерактив → протокол лёгкий.
+
+## Механика — определить, не угадывать
+
+```bash
+ls -d .cursor/rules .cursorrules .clinerules .windsurf/rules ~/.codeium/windsurf 2>/dev/null
+```
+
+| Агент | Файл правил (что найдено — то и используем) | MCP-конфиг |
+|-------|--------------------------------------------|------------|
+| Cursor | `.cursor/rules/director.mdc` (новый формат) ИЛИ `.cursorrules` (старый) | `.cursor/mcp.json` |
+| Cline | `.clinerules/director.md` ИЛИ `.clinerules` | VS Code: `cline_mcp_settings.json` |
+| Windsurf | `.windsurf/rules/director.md` | `~/.codeium/windsurf/mcp_config.json` |
+
+Ничего не нашлось → спросить {{USER_NAME}}, где его файл правил, ИЛИ создать по текущему формату агента и сказать об этом. Блок — между маркерами `<!-- DIRECTOR -->`, в конец, чужое не трогать. MCP — **в существующий** конфиг рядом.
+
+Оркестратор = модель IDE-агента. Доктрина: рядом с файлом правил положить `director-doctrine/` = копии `core/00–05` + `models.md` + `skills.md`.
+
+## Блок правил (тонкий)
+
+```markdown
+<!-- ═══ DIRECTOR ({{USER_NAME}}) — мастер director, тир {{TIER}} ═══ -->
+
+# Директор ({{USER_NAME}})
+
+Оркестратор, не исполнитель. Полная доктрина — `director-doctrine/00-director.md` … `05-protocol.md` (+ `models.md`, `skills.md`), читать целиком.
+
+## Параметры {{USER_NAME}}
+- Прод (только с ОК): {{PROD_DEFINITION}}. Тест-среда: {{TEST_ENV_LINE}}
+- Оркестратор: {{SELF_MODEL}}. Исполнители: {{CHEAP_STACK}} (вызов curl из терминала, ответ в файл, проверить файл)
+- Память: MCP `{{LIGHTRAG_MCP}}` (query_text hybrid / insert_text) + `{{PG_MCP}}` (SQL, запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет памяти → не работать, сказать {{USER_NAME}}
+- Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}. Обращение {{ADDRESS_FORM}}. Язык {{LANGUAGE}}
+
+## Среда
+Протокол лёгкий: старт диалога — recall из LightRAG (молча); «давай/делай» → работать; финал — insert_text решения/факты → коммит конкретных файлов. Субагентов нет.
+
+{{FREEMIND_LINE}}
+<!-- ═══ /DIRECTOR ═══ -->
+```

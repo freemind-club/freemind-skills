@@ -1,0 +1,48 @@
+# Профиль: {{USER_NAME}}
+
+> Заполнено мастером `director` {{SETUP_DATE}}, версия {{VERSION}}. Правится вручную или пересбором (`/director`).
+
+## Активация
+- Среда: {{ENVIRONMENT}}
+- Тир: {{TIER}} · промокод: {{PROMO_CODE}}
+
+## Кто
+- Обращение: {{USER_NAME}}
+- Чем занимается: {{USER_BIO}}
+- Язык: {{LANGUAGE}}
+
+## Проекты
+- Рабочая папка: `{{PROJECT_PATH}}`
+- Git: {{PROJECT_GIT}}
+- Контекстные файлы при старте: {{START_CONTEXT_FILES}}
+- Входящие: {{INBOX_PATH}}
+
+## Память
+- Тип: {{MEMORY_KIND}}  (файловая / два полушария; апгрейд-план если файловая)
+- LightRAG: {{LIGHTRAG_URL}} / MCP `{{LIGHTRAG_MCP}}`
+- PostgreSQL: read MCP `{{PG_MCP}}` / write MCP `{{PG_WRITE_MCP}}` / фактическая схема: {{PG_TABLES}}
+- Секреты: {{MEMORY_COORDS}}
+
+## Делегирование
+- Оркестратор (SELF_MODEL): {{SELF_MODEL}}
+- Исполнители (CHEAP_STACK, по порядку): {{CHEAP_STACK}}
+- Координаты (endpoints, где ключи): {{DELEGATION_COORDS}}
+- Инструменты под управлением: {{TOOLS_LIST}}
+
+## Безопасность и связь
+- Тест-среда: {{TEST_ENV}}
+- Что считается продом: {{PROD_DEFINITION}}
+- Канал для решений/алертов: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}
+
+## Что уже было на машине (Шаг 0.7 — подключено, не тронуто)
+{{INVENTORY_SUMMARY}}
+
+## FreeMind-стек
+- Подключён: {{FREEMIND_ENABLED}}
+- Детали: [references/06-freemind-stack.md](references/06-freemind-stack.md) (если подключён)
+
+## Библиотека скиллов
+- Репо: {{SKILLS_REPO}} · установлена: {{SKILLS_LIB_INSTALLED}}
+
+## Открытые вопросы (уточнить у {{USER_NAME}})
+{{OPEN_QUESTIONS}}
