@@ -1,16 +1,17 @@
 services:
   # ─── PostgreSQL (pgvector + Apache AGE) ───
   # Образ gzdaniel/postgres-for-rag включает все нужные расширения.
-  # ВАЖНО: этот образ использует фиксированные кредсы rag/rag/rag.
-  # Переменные POSTGRES_USER/PASSWORD/DB влияют только на initdb,
-  # но образ уже создаёт пользователя rag при первом запуске.
+  # POSTGRES_USER/DB зафиксированы образом как rag/rag — не переименовывай.
+  # POSTGRES_PASSWORD — НЕ оставляй "rag": сгенерируй (openssl rand -hex 20) и подставь.
+  # После первого запуска ПРОВЕРЬ, что новый пароль реально работает (см. server/install.sh) —
+  # у некоторых сборок этого образа initdb может не применить переменную.
   postgres:
     image: gzdaniel/postgres-for-rag:16.6
     container_name: lightrag-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: rag
-      POSTGRES_PASSWORD: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: rag
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -24,7 +25,7 @@ services:
 
   # ─── LightRAG Server ───
   lightrag:
-    image: ghcr.io/hkuds/lightrag:latest
+    image: ghcr.io/hkuds/lightrag:1.4.9  # пин версии — проверь актуальный тег на ghcr.io/hkuds/lightrag перед обновлением
     container_name: lightrag-server
     restart: unless-stopped
     depends_on:

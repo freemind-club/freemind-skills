@@ -41,7 +41,7 @@
 > ```
 > Если БД `brain` и таблицы уже есть с данными — **не трогать**, только добавить недостающее. Перед любыми изменениями существующей БД — `pg_dump`.
 
-LightRAG поднял Postgres (`lightrag-postgres`, креды `rag/rag/rag`). БД `brain` и таблицы — идемпотентно:
+LightRAG поднял Postgres (`lightrag-postgres`, пользователь/БД `rag`/`rag`, пароль — сгенерированный, см. credentials.txt). БД `brain` и таблицы — идемпотентно:
 
 ```bash
 docker exec -i lightrag-postgres psql -U rag -tc "SELECT 1 FROM pg_database WHERE datname='brain'" | grep -q 1 \

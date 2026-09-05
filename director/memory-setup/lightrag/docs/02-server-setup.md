@@ -16,22 +16,26 @@
 # Проверка:
 docker --version && docker compose version
 
-# Если нет — установка (Linux):
+# Если нет — установка (Linux). Прочитай команды перед запуском — это sudo:
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
-# Перелогинься (exit + заново подключись по SSH)
+# ⚠️ Группа docker даёт права, по сути равные root. Перелогинься (exit + заново по SSH).
 
 # macOS: Docker Desktop — https://docker.com/products/docker-desktop
 ```
 
 ## 3. Создай директорию и файлы
 
-⛔ **ВАЖНО:** Если на сервере уже есть `~/lightrag/.env` от предыдущей установки — **НЕ ИСПОЛЬЗУЙ ЕГО.** Старый `.env` содержит значения от прошлой установки, которые могут быть неправильными. ВСЕГДА создавай `.env` заново из `.env.example`, заполняй с нуля и спрашивай у пользователя все значения.
+⛔ **ВАЖНО:** Если на сервере уже есть `~/lightrag/.env` от предыдущей установки — **НЕ ИСПОЛЬЗУЙ ЕГО КАК ЕСТЬ.** Старый `.env` может содержать значения от прошлой установки, которые уже не подходят. Но это чужие данные и чужие пароли — **не удаляй их молча**, даже если планируешь пересоздать файл.
 
 ```bash
 mkdir -p ~/lightrag && cd ~/lightrag
-# Если есть старый .env — удали:
-rm -f ~/lightrag/.env
+# Если есть старый .env — сначала СПРОСИ пользователя, можно ли его убрать, и переименуй
+# в бэкап, а не удаляй. Только после явного "да" — переходи к пересборке.
+if [ -f ~/lightrag/.env ]; then
+  cp ~/lightrag/.env ~/lightrag/.env.bak-$(date +%Y%m%d-%H%M%S)
+  echo "Старый .env скопирован в бэкап. Убедись что пользователь согласен пересоздать конфиг."
+fi
 ```
 
 ### docker-compose.yml
@@ -46,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: rag
-      POSTGRES_PASSWORD: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # см. ниже — генерируй, не оставляй rag
       POSTGRES_DB: rag
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -59,7 +63,7 @@ services:
       retries: 5
 
   lightrag:
-    image: ghcr.io/hkuds/lightrag:latest
+    image: ghcr.io/hkuds/lightrag:1.4.9  # пин версии — проверь актуальный тег на ghcr.io/hkuds/lightrag перед обновлением
     container_name: lightrag-server
     restart: unless-stopped
     depends_on:
@@ -94,12 +98,12 @@ networks:
 LIGHTRAG_API_KEY=$(openssl rand -hex 32)
 TOKEN_SECRET=$(openssl rand -hex 32)
 ADMIN_PASSWORD=$(openssl rand -hex 16)
-echo "LIGHTRAG_API_KEY=$LIGHTRAG_API_KEY"
-echo "TOKEN_SECRET=$TOKEN_SECRET"
-echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
+POSTGRES_PASSWORD=$(openssl rand -hex 20)
+umask 077   # чтобы файлы ниже создавались без прав для чужих пользователей системы
 ```
 
-⛔ **ЗАПИШИ ЭТИ ЗНАЧЕНИЯ** — они понадобятся в конце для подключения агентов.
+⛔ **НЕ печатай эти значения в терминал** (`echo "$VAR"`) — попадают в scrollback/логи/скриншоты.
+Запиши их сразу в `.env` (ниже) и в `credentials.txt` с `chmod 600` — это единственное место, где они лежат открытым текстом.
 
 ### .env для облачного провайдера (Polza.ai / OpenRouter / OpenAI)
 
@@ -120,11 +124,12 @@ EMBEDDING_DIM=1536
 EMBEDDING_MAX_TOKEN_SIZE=8192
 
 # ─── PostgreSQL ───
-# НЕ МЕНЯЙ — образ использует фиксированные rag/rag/rag
+# POSTGRES_USER/DATABASE фиксированы образом (rag/rag) — не переименовывай.
+# POSTGRES_PASSWORD — НЕ оставляй "rag", подставь сгенерированный выше.
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_USER=rag
-POSTGRES_PASSWORD=rag
+POSTGRES_PASSWORD=<сгенерированный POSTGRES_PASSWORD, не "rag">
 POSTGRES_DATABASE=rag
 
 LIGHTRAG_KV_STORAGE=PGKVStorage

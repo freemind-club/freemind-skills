@@ -2,7 +2,7 @@
 name: director
 description: Wizard that builds a personalized AI-"director" (delegating orchestrator with persistent memory, session protocols, safety rules, self-improvement) for the user's environment. Use when the user says "настрой директора" / "собери директора" / "поставь директора" / "set up my director" / "/director", or wants to install the FreeMind club director. Not for ordinary tasks. Re-run only to reconfigure.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # director — мастер настройки AI-директора

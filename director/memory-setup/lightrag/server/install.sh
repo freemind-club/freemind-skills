@@ -22,11 +22,22 @@ error() { echo -e "  ${RED}✗${NC} $1"; }
 hint()  { echo -e "  ${GRAY}$1${NC}"; }
 header(){ echo -e "\n${BOLD}$1${NC}"; }
 
+# Безопасное присвоение по имени переменной — БЕЗ eval.
+# Валидируем имя (только [A-Za-z_][A-Za-z0-9_]*), значение через printf -v — не парсится шеллом.
+_safe_set() {
+  local varname="$1" val="$2"
+  if [[ ! "$varname" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    error "Внутренняя ошибка: недопустимое имя переменной '$varname'"
+    exit 1
+  fi
+  printf -v "$varname" '%s' "$val"
+}
+
 ask_default() {
   local prompt="$1" default="$2" varname="$3"
   local val
   read -r -p "$(echo -e "  ${BOLD}${prompt}${NC} [${CYAN}${default}${NC}]: ")" val
-  eval "${varname}='${val:-$default}'"
+  _safe_set "$varname" "${val:-$default}"
 }
 
 ask_required() {
@@ -36,7 +47,7 @@ ask_required() {
     read -r -p "$(echo -e "  ${BOLD}${prompt}${NC}: ")" val
     [ -z "$val" ] && error "Это обязательное поле"
   done
-  eval "${varname}='${val}'"
+  _safe_set "$varname" "$val"
 }
 
 ask_choice() {
@@ -52,7 +63,7 @@ ask_choice() {
     read -r -p "$(echo -e "  ${BOLD}Выбор${NC} [1]: ")" choice
     choice="${choice:-1}"
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
-      eval "${varname}=${choice}"
+      _safe_set "$varname" "$choice"
       return
     fi
     error "Введи число от 1 до ${#options[@]}"
@@ -78,18 +89,26 @@ else
   info "Linux обнаружена"
 fi
 
-# Docker
+# Docker — НЕ ставим автоматически: скрипт из интернета + sudo + группа docker (= root)
+# должен запускать сам пользователь осознанно, не этот установщик молча.
 if command -v docker &> /dev/null; then
   info "Docker: $(docker --version | cut -d' ' -f3 | tr -d ',')"
 else
-  warn "Docker не найден — устанавливаю..."
+  error "Docker не найден."
+  echo ""
   if [ "$OS" = "macos" ]; then
-    error "На macOS установи Docker Desktop вручную: https://docker.com/products/docker-desktop"
-    exit 1
+    hint "Установи Docker Desktop: https://docker.com/products/docker-desktop"
+  else
+    hint "Установи Docker сам (это установка с sudo и добавлением тебя в группу docker —"
+    hint "это даёт права, эквивалентные root, поэтому автоматически мы это не делаем):"
+    hint ""
+    hint "  curl -fsSL https://get.docker.com | sh"
+    hint "  sudo usermod -aG docker \$USER"
+    hint "  # перелогинься (exit + зайди заново), затем проверь: docker run hello-world"
   fi
-  curl -fsSL https://get.docker.com | sh
-  sudo usermod -aG docker "$USER" 2>/dev/null || true
-  info "Docker установлен"
+  echo ""
+  hint "После установки Docker запусти этот скрипт заново."
+  exit 1
 fi
 
 # Docker Compose
@@ -173,17 +192,23 @@ TOKEN_SECRET=$(openssl rand -hex 32)
 ADMIN_SUFFIX=$(shuf -i 1000-9999 -n 1 2>/dev/null || echo $((RANDOM % 9000 + 1000)))
 ADMIN_LOGIN="lrag_admin_${ADMIN_SUFFIX}"
 ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | head -c 16)
+POSTGRES_PASSWORD=$(openssl rand -hex 20)
 
 info "API ключ сгенерирован"
 info "JWT секрет сгенерирован"
 info "Логин: ${ADMIN_LOGIN}"
 info "Пароль сгенерирован (16 символов)"
+info "Пароль PostgreSQL сгенерирован (было бы небезопасно оставлять дефолтный rag/rag)"
 
 # ─── 4. Создание файлов ───────────────────────────────────────
 header "6. Создание конфигов"
 
 INSTALL_DIR="${HOME}/lightrag"
+# umask 077 — все файлы/папки ниже создаются без прав для group/other (0700/0600).
+# Секреты (.env, docker-compose.yml с паролем) не должны быть читаемы другими пользователями системы.
+umask 077
 mkdir -p "${INSTALL_DIR}"
+chmod 700 "${INSTALL_DIR}"
 
 # --- docker-compose.yml ---
 COMPOSE_CADDY_SERVICE=""
@@ -225,7 +250,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: rag
-      POSTGRES_PASSWORD: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: rag
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -239,7 +264,7 @@ services:
 
   # ─── LightRAG Server ───
   lightrag:
-    image: ghcr.io/hkuds/lightrag:latest
+    image: ghcr.io/hkuds/lightrag:1.4.9  # пин версии — обнови вручную после проверки changelog, не молча
     container_name: lightrag-server
     restart: unless-stopped
     depends_on:
@@ -292,7 +317,7 @@ EMBEDDING_MAX_TOKEN_SIZE=8192
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_USER=rag
-POSTGRES_PASSWORD=rag
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 POSTGRES_DATABASE=rag
 
 LIGHTRAG_KV_STORAGE=PGKVStorage
@@ -317,7 +342,9 @@ LOG_LEVEL=INFO
 TIMEOUT=150
 ENV_EOF
 
-info ".env создан"
+chmod 600 "${INSTALL_DIR}/.env"
+chmod 600 "${INSTALL_DIR}/docker-compose.yml"
+info ".env создан (chmod 600)"
 
 # --- Caddyfile ---
 if [ "$PROXY_MODE" = "1" ]; then
@@ -401,6 +428,19 @@ for i in $(seq 1 30); do
   fi
 done
 
+# Образ gzdaniel/postgres-for-rag может создавать пользователя rag на этапе сборки
+# образа, а не только через initdb — тогда переданный нами POSTGRES_PASSWORD может
+# не примениться, и реальным паролем останется старый/дефолтный. Проверяем это,
+# а не верим переменной на слово.
+if docker exec -e PGPASSWORD="${POSTGRES_PASSWORD}" lightrag-postgres psql -U rag -d rag -c "SELECT 1" &>/dev/null; then
+  info "Пароль PostgreSQL подтверждён рабочим (не дефолтный)"
+else
+  warn "Сгенерированный пароль PostgreSQL не подошёл при проверке — похоже, образ"
+  warn "gzdaniel/postgres-for-rag игнорирует POSTGRES_PASSWORD после первой сборки."
+  warn "Реальный пароль БД может остаться дефолтным. Смени его вручную:"
+  hint "  docker exec -it lightrag-postgres psql -U rag -d rag -c \"ALTER USER rag WITH PASSWORD '${POSTGRES_PASSWORD}';\""
+fi
+
 # Ожидание LightRAG
 echo -ne "  Жду LightRAG..."
 HEALTH_URL="http://localhost:9621/health"
@@ -424,10 +464,12 @@ echo -e "${BOLD}═════════════════════�
 echo -e "${BOLD}  ${GREEN}LightRAG установлен и работает!${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"
 echo ""
+# Секреты в терминал НЕ печатаем — терминал попадает в scrollback, tmux-логи,
+# скриншоты, историю CI. Полные значения — только в credentials.txt (chmod 600).
 echo -e "  ${BOLD}URL:${NC}        ${CYAN}${LIGHTRAG_URL}${NC}"
 echo -e "  ${BOLD}Логин:${NC}      ${ADMIN_LOGIN}"
-echo -e "  ${BOLD}Пароль:${NC}     ${ADMIN_PASSWORD}"
-echo -e "  ${BOLD}API ключ:${NC}   ${LIGHTRAG_API_KEY}"
+echo -e "  ${BOLD}Пароль:${NC}     ****$(printf '%s' "$ADMIN_PASSWORD" | tail -c 4)   (полностью — в credentials.txt)"
+echo -e "  ${BOLD}API ключ:${NC}   ****$(printf '%s' "$LIGHTRAG_API_KEY" | tail -c 4)   (полностью — в credentials.txt)"
 echo ""
 
 # --- Claude Code (локальный Mac) ---
