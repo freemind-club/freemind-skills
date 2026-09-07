@@ -100,7 +100,7 @@ Claude Code (с другой машины):
     -- npx -y @g99/lightrag-mcp-server
 
 OpenClaw (на этом сервере):
-  openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server"],"env":{"LIGHTRAG_SERVER_URL":"http://localhost:9621","LIGHTRAG_API_KEY":"<ключ>"}}'
+  openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server@1.1.0"],"env":{"LIGHTRAG_SERVER_URL":"http://localhost:9621","LIGHTRAG_API_KEY":"<ключ>"}}'
 
 --- Полезные команды ---
 

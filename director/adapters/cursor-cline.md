@@ -30,11 +30,11 @@ ls -d .cursor/rules .cursorrules .clinerules .windsurf/rules ~/.codeium/windsurf
 ## Параметры {{USER_NAME}}
 - Прод (только с ОК): {{PROD_DEFINITION}}. Тест-среда: {{TEST_ENV_LINE}}
 - Оркестратор: {{SELF_MODEL}}. Исполнители: {{CHEAP_STACK}} (вызов curl из терминала, ответ в файл, проверить файл)
-- Память: MCP `{{LIGHTRAG_MCP}}` (query_text hybrid / insert_text) + `{{PG_MCP}}` (SQL, запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет памяти → не работать, сказать {{USER_NAME}}
+- Память (бэкенд `{{MEMORY_BACKEND}}`; `files` → `MEMORY.md`, `lightrag*` → MCP): `{{LIGHTRAG_MCP}}` (query_text hybrid / insert_text) + `{{PG_MCP}}` (SQL, запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет рабочей памяти выбранного бэкенда `{{MEMORY_BACKEND}}` → сказать {{USER_NAME}}, не зависать
 - Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}. Обращение {{ADDRESS_FORM}}. Язык {{LANGUAGE}}
 
 ## Среда
-Протокол лёгкий: старт диалога — recall из LightRAG (молча); «давай/делай» → работать; финал — insert_text решения/факты → коммит конкретных файлов. Субагентов нет.
+Протокол лёгкий: старт диалога — recall из памяти бэкенда `{{MEMORY_BACKEND}}` (молча); «давай/делай» → работать; финал — запись решений/фактов в память (принцип 7: чувствительное не писать) → коммит конкретных файлов. Субагентов нет.
 
 {{FREEMIND_LINE}}
 <!-- ═══ /DIRECTOR ═══ -->

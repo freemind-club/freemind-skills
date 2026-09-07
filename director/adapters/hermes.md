@@ -2,35 +2,47 @@
 
 Hermes — постоянный агент (Telegram-гейтвей + Kanban + cron), не сессии. Факты — из локальной установки (`/usr/local/lib/hermes-agent`, `~/.hermes/`) и `_inbox/natalia_hermes_install.md`.
 
+## Память — по умолчанию `native`
+
+У Hermes **уже есть** штатная постоянная память (`~/.hermes/memories/MEMORY.md` + `USER.md` + история сессий). Для большинства пользователей этого достаточно — Директор работает сразу, без Docker/LightRAG/MCP.
+
+| `{{MEMORY_BACKEND}}` | Что делает адаптер |
+|---------------------|--------------------|
+| `native` (**дефолт**) | Ничего не ставит. Директор пишет решения/факты/предпочтения в `~/.hermes/memories/MEMORY.md`, профиль — в `USER.md`. Стартовый recall — штатный механизм Hermes |
+| `lightrag` / `lightrag_postgres` | Ставится **только если {{USER_NAME}} явно попросил** (много проектов, нужен граф связей, ведёт аналитику). Отдельный шаг + согласие про приватность (данные уйдут в сервис). См. MCP ниже |
+
+🔴 Данные пациентов/клиентов, секреты, чужая переписка (принцип 7) — не пишутся **ни в native, ни в LightRAG** без явного разрешения на конкретную запись.
+
 ## Механика
 
 | Аспект | Как |
 |--------|-----|
 | Инструкции | блок между маркерами **в конец** `~/.hermes/SOUL.md`; существующий текст персоны не трогать |
 | Профиль | `~/.hermes/memories/USER.md` (формат `key §` через `§`), **дополнить** |
-| Доктрина | `~/.hermes/skills/director-doctrine/` = копии `core/00–04` + `models.md` + `skills.md` (нужен `hermes skills trust` проекта, если репо-локально) |
-| MCP | `hermes mcp add <name> ...` (см. ниже) → рядом с существующими, `hermes mcp list` проверить |
+| Доктрина | `~/.hermes/skills/director-doctrine/` = копии `core/00–04` + `models.md` + `skills.md`. **Если там уже есть персональная версия — не перезаписывать: показать diff, спросить, дописать между стабильными маркерами** |
 | Оркестратор | `hermes config get model.default` |
 | Протокол сессии (core/05) | **не применяется** — вместо него протокол задачи (в блоке ниже) |
-| `~/.hermes/memories/MEMORY.md` | встроенная память Hermes — не трогать, наша память через MCP |
 
-## MCP — показать и согласовать, не авто-одобрять
+## MCP — только для `lightrag` / `lightrag_postgres`, показать и согласовать
 
-`hermes mcp add` спрашивает «Enable all tools? [Y/n/select]». Это осознанный выбор пользователя, не наш — **не отвечать `y` автоматически**.
+`hermes mcp add` спрашивает «Enable all tools? [Y/n/select]». Это осознанный выбор пользователя — **не отвечать `y` автоматически**.
 
-1. `hermes mcp add --interactive` (или без флагов) → показать {{USER_NAME}} **какой сервер, какие именно инструменты** он даёт (`hermes mcp add --help` — список инструментов пакета, если поддерживается) → дать выбрать `select`, не `all`.
-2. **LightRAG** обычно нужен read+write (query_text + insert_text) — это ожидаемо, объяснить зачем.
-3. **PostgreSQL** — по умолчанию **read-only**. Write-доступ к БД — отдельный явный вопрос {{USER_NAME}}: «дать директору право писать в БД памяти? Без этого он не сможет создавать записи, но и не сможет случайно их сломать.» Ответил нет → не подключать write-сервер вовсе, только read.
-4. Зафиксировать версии пакетов, не голый `npx -y` без версии, где это возможно: `npx -y @g99/lightrag-mcp-server@<версия>`.
-5. После подключения — **обязательно** `hermes mcp list` и показать {{USER_NAME}} фактический список серверов и инструментов, которые реально включены. Сервера нет в списке → повторить или отдать команду {{USER_NAME}} вставить руками.
+1. `hermes mcp add --interactive` → показать {{USER_NAME}} **какой сервер, какие именно инструменты** он даёт → выбрать `select`, не `all`.
+2. **LightRAG** — read+write (`query_text` + `insert_text`), объяснить зачем.
+3. **PostgreSQL** — по умолчанию **read-only**. Write — отдельный явный вопрос: «дать директору право писать в БД памяти? без этого он не создаёт записи, но и не сломает их случайно». Нет → не подключать write-сервер вообще.
+4. **Версии npm-пакетов закреплены** в командах ниже — не `npx -y <pkg>` без версии.
+5. После подключения — `hermes mcp list`, показать {{USER_NAME}} фактический список.
 
 ```bash
-hermes mcp add lightrag --command npx --args -y '@g99/lightrag-mcp-server' \
-  --env LIGHTRAG_SERVER_URL={{LIGHTRAG_URL}} LIGHTRAG_API_KEY=<из ~/lightrag/.env>
-# postgres — только если {{USER_NAME}} явно согласился на write:
-hermes mcp add postgres --command npx --args -y '@modelcontextprotocol/server-postgres' \
+LR_KEY=$(awk '/^API ключ:/{print $NF}' ~/lightrag/credentials.txt)
+hermes mcp add --interactive lightrag --command npx \
+  --args -y @g99/lightrag-mcp-server@1.1.0 \
+  --env LIGHTRAG_SERVER_URL={{LIGHTRAG_URL}} LIGHTRAG_API_KEY="$LR_KEY"
+# postgres — только если {{USER_NAME}} явно согласился на write (иначе не подключать):
+hermes mcp add --interactive postgres --command npx \
+  --args -y @modelcontextprotocol/server-postgres@0.6.2 \
   'postgresql://<user>:<pass>@<host>:<port>/brain'
-hermes mcp list   # показать {{USER_NAME}} этот вывод — что реально подключилось
+hermes mcp list   # показать {{USER_NAME}} — что реально подключилось
 ```
 
 ## Блок для `~/.hermes/SOUL.md` (тонкий)
@@ -46,20 +58,20 @@ hermes mcp list   # показать {{USER_NAME}} этот вывод — чт�
 
 ### Протокол задачи (на каждое обращение / карточку Kanban)
 1. Прочитать карточку/сообщение целиком
-2. LightRAG `query_text` (hybrid) по теме — контекст. «🔍 Смотрю…» если >3 сек
+2. Поднять контекст по теме — бэкенд `{{MEMORY_BACKEND}}` (`native` → штатная память Hermes; `lightrag*` → `query_text` hybrid). «🔍 Смотрю…» если >3 сек
 3. Трогает реальных людей / прод ({{PROD_DEFINITION}})? → ОК {{USER_NAME}}, не раньше
 4. Затратная задача (много ходов) → «⚠️ лучше с компьютера», ждать
 5. Делать, делегируя: {{CHEAP_STACK}}
 6. Проверить лично — curl/логи, не «✅»
-7. **Сначала** LightRAG `insert_text` — решения / паттерны / уроки (не пересказ), PostgreSQL — цифры. Не код/логи/дампы
-8. **Потом** под git → git add конкретных файлов + commit + push. Push без записи в память — нарушение
-9. Отчёт в карточку: записал в память / сделано / проверено / запушено / осталось. Не завершается → сказать {{USER_NAME}}, не зависать
+7. Записать выводы (решения / паттерны / уроки, не пересказ) в память бэкенда. **Принцип 7:** чувствительное — не писать. Цифры → PostgreSQL (если `lightrag_postgres`)
+8. **Git — не обязательно.** Только если задача в репозитории И {{USER_NAME}} просил зафиксировать: `git add` конкретных файлов → показать remote/ветку/файлы + прогон на секреты → **спросить «запушить? [да/нет]»** → только после «да» commit + push
+9. Отчёт в карточку: записал в память / сделано / проверено / (запушено или коммит локальный) / осталось. Не завершается → сказать {{USER_NAME}}, не зависать
 
 ### Параметры {{USER_NAME}}
 - Тест-среда: {{TEST_ENV_LINE}}
-- Память: LightRAG MCP `{{LIGHTRAG_MCP}}` + PostgreSQL MCP `{{PG_MCP}}` (запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет памяти → не брать задачи
+- Память: бэкенд `{{MEMORY_BACKEND}}`. `native` → `~/.hermes/memories/MEMORY.md`. `lightrag*` → MCP `{{LIGHTRAG_MCP}}` (+ `{{PG_MCP}}` / запись `{{PG_WRITE_MCP}}`, таблицы {{PG_TABLES}}). Память не поднимается → сказать {{USER_NAME}}, не молчать
 - Оркестратор: {{SELF_MODEL}}. Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}. Обращение {{ADDRESS_FORM}}
-- Самоулучшение: «так не делай»/«запомни» → `insert_text` в LightRAG, тег `director-journal`
+- Самоулучшение: «так не делай»/«запомни» → запись в память, тег `director-journal` (кроме чувствительных данных)
 
 <!-- ═══ /DIRECTOR ═══ -->
 ```

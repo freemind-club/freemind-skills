@@ -17,12 +17,12 @@
 | ставим в AI Agent ноду воркфлоу n8n | n8n AI Agent | [n8n-ai-agent.md](n8n-ai-agent.md) |
 | ничего из выше / другой агент / свой бот | Голый system-prompt | [generic.md](generic.md) |
 
-Несколько сред на одной машине (напр. Claude Code + Hermes) → поставить в каждую свой адаптер, память общая (один LightRAG + один PostgreSQL).
+Несколько сред на одной машине → поставить в каждую свой адаптер. Если бэкенд памяти `lightrag*` — он общий (один LightRAG/PostgreSQL на все среды). Если `native`/`files` — у каждой среды своя.
 
 ## Что общего у всех адаптеров
 
 1. Тянут одни и те же `core/00…04` (доктрина, делегирование, память, правила, самоулучшение)
-2. Требуют рабочую память (два полушария или файловую для lite) — [../memory-setup/README.md](../memory-setup/README.md)
+2. Требуют рабочую персистентную память бэкенда `{{MEMORY_BACKEND}}` (`native`/`files`/`lightrag`/`lightrag_postgres`) — [../core/02-memory.md](../core/02-memory.md), апгрейд → [../memory-setup/README.md](../memory-setup/README.md)
 3. Заполняют `{{плейсхолдеры}}` из интервью — [../templates/PLACEHOLDERS.md](../templates/PLACEHOLDERS.md)
 4. Кладут `profile.md` рядом
 

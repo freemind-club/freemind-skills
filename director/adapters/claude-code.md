@@ -60,7 +60,7 @@ description: Personal AI-director. Load at the start of EVERY session, before de
 |------|-------|
 | [references/00-director.md](references/00-director.md) | суть роли + 10 принципов |
 | [references/01-delegation.md](references/01-delegation.md) | цепочка делегирования, оркестрация субагентов |
-| [references/02-memory.md](references/02-memory.md) | два полушария — как помнить |
+| [references/02-memory.md](references/02-memory.md) | память: бэкенд `{{MEMORY_BACKEND}}` — как помнить |
 | [references/03-rules.md](references/03-rules.md) | железные правила безопасности |
 | [references/04-improvement.md](references/04-improvement.md) | косяк → правило |
 | [references/05-protocol.md](references/05-protocol.md) | протокол старт/финал |
@@ -71,7 +71,7 @@ description: Personal AI-director. Load at the start of EVERY session, before de
 - **Прод** (действия только с явного ОК): {{PROD_DEFINITION}}
 - **Тест-среда**: {{TEST_ENV_LINE}}
 - **Оркестратор**: {{SELF_MODEL}}. **Исполнители** по порядку: {{CHEAP_STACK}}
-- **Память**: LightRAG MCP `{{LIGHTRAG_MCP}}` + PostgreSQL MCP `{{PG_MCP}}` (запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Недоступна на старте → сказать {{USER_NAME}}, не начинать.
+- **Память** (бэкенд `{{MEMORY_BACKEND}}`): `files` → `MEMORY.md`+`journal.md`; `lightrag*` → MCP `{{LIGHTRAG_MCP}}` (+ `{{PG_MCP}}` / запись `{{PG_WRITE_MCP}}`, таблицы {{PG_TABLES}}). Выбранный бэкенд не поднялся → сказать {{USER_NAME}}, предложить `files`. **Принцип 7:** чувствительное не сохранять.
 - **Старт-контекст**: {{START_CONTEXT_FILES}}. Инбокс: {{INBOX_PATH}}. Доп: {{START_EXTRA}}
 - **Связь**: {{ALERT_CHANNEL}} → {{ALERT_TARGET}} ({{ALERT_VERBOSITY}})
 - **Автономия**: {{AUTONOMY_LEVEL}} — {{AUTONOMY_NOTE}}

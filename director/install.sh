@@ -10,15 +10,22 @@
 set -euo pipefail
 
 SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
-# По умолчанию — ветка main (нет ещё версионированных релизов). Можно закрепиться на
-# конкретном коммите/теге: DIRECTOR_REPO_REF=a04bab9 bash install.sh — тогда SUBDIR ниже
-# подставится автоматически. Для проверки целостности — DIRECTOR_EXPECTED_SHA256=<хеш>.
+# Источник:
+#   1) DIRECTOR_LOCAL_DIR=/path/to/director  — ставить из уже проверенной локальной копии,
+#      БЕЗ повторного скачивания (нет TOCTOU: что проверил — то и ставишь).
+#   2) DIRECTOR_REPO_REF=<tag|commit>        — закрепиться на неизменяемой ревизии.
+#   3) DIRECTOR_EXPECTED_SHA256=<хеш>        — обязательная сверка контрольной суммы архива.
+# По умолчанию тянется ветка main. Без ожидаемого хеша — режим UNVERIFIED с явным согласием.
+DIRECTOR_LOCAL_DIR="${DIRECTOR_LOCAL_DIR:-}"
 DIRECTOR_REPO_REF="${DIRECTOR_REPO_REF:-main}"
 REPO_TARBALL="${DIRECTOR_REPO_TARBALL:-https://github.com/freemind-club/freemind-skills/archive/${DIRECTOR_REPO_REF}.tar.gz}"
 SUBDIR="freemind-skills-${DIRECTOR_REPO_REF}/director"
+# Файлы, без которых распакованный каталог считается битым (проверка перед заменой).
+REQUIRED_FILES=(SKILL.md core/00-director.md adapters/00_ROUTER.md models/00_ROUTER.md)
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 err()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; }
+hint() { printf '\033[90m%s\033[0m\n' "$*"; }
 
 # ── FREEMIND-BRAND ──────────────────────────────────────────
 brand() {
@@ -63,45 +70,99 @@ G
 esac
 say "Промокод принят."
 
-# --- Снимок прошлого мастер-скилла (если был) ------------------------
-BK="$HOME/.director-backup/$(date +%Y%m%d-%H%M%S)-installer"
-for d in "$SKILLS_DIR/director" "$HOME/.hermes/skills/director" "$HOME/.qwen/skills/director" "$HOME/.codex/skills/director"; do
-  [ -d "$d" ] || continue
-  mkdir -p "$BK"; cp -R "$d" "$BK/$(echo "$d" | tr '/' '_')"
-done
-[ -d "$BK" ] && say "Прошлый мастер-скилл сохранён в $BK"
-
-# --- Установка ------------------------------------------------------
-say "Ставлю мастер-скилл в $SKILLS_DIR/director"
-mkdir -p "$SKILLS_DIR"
+# --- Получаем исходник в staging ($SRC) -----------------------------
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+SRC=""
 
-TARBALL_FILE="$TMP/repo.tar.gz"
-curl -fsSL -m 60 "$REPO_TARBALL" -o "$TARBALL_FILE"
+if [ -n "$DIRECTOR_LOCAL_DIR" ]; then
+  [ -d "$DIRECTOR_LOCAL_DIR" ] || { err "DIRECTOR_LOCAL_DIR не существует: $DIRECTOR_LOCAL_DIR"; exit 1; }
+  say "Ставлю из локальной копии: $DIRECTOR_LOCAL_DIR (без скачивания)"
+  SRC="$DIRECTOR_LOCAL_DIR"
+else
+  say "Скачиваю мастер-скилл (ревизия: $DIRECTOR_REPO_REF)"
+  TARBALL_FILE="$TMP/repo.tar.gz"
+  curl -fsSL -m 60 "$REPO_TARBALL" -o "$TARBALL_FILE"
+  TARBALL_SHA256="$(sha256sum "$TARBALL_FILE" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$TARBALL_FILE" | cut -d' ' -f1)"
+  say "SHA-256 архива: ${TARBALL_SHA256}"
 
-TARBALL_SHA256="$(sha256sum "$TARBALL_FILE" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$TARBALL_FILE" | cut -d' ' -f1)"
-say "SHA-256 архива: ${TARBALL_SHA256}"
-hint "Сверь с опубликованным хешем коммита ${DIRECTOR_REPO_REF}, если он у тебя есть."
+  if [ -n "${DIRECTOR_EXPECTED_SHA256:-}" ]; then
+    if [ "$TARBALL_SHA256" != "$DIRECTOR_EXPECTED_SHA256" ]; then
+      err "SHA-256 не совпал с DIRECTOR_EXPECTED_SHA256 — архив изменился или подменён. Стоп."
+      exit 1
+    fi
+    say "Контрольная сумма совпала."
+  else
+    hint "Ожидаемый хеш не задан (DIRECTOR_EXPECTED_SHA256). Это режим UNVERIFIED —"
+    hint "ты не можешь доказать, что скачал именно то, что проверял."
+    read -r -p "Продолжить без проверки целостности? [y/N]: " _unv
+    [ "$_unv" = "y" ] || [ "$_unv" = "Y" ] || { err "Отменено."; exit 1; }
+  fi
 
-if [ -n "${DIRECTOR_EXPECTED_SHA256:-}" ] && [ "$TARBALL_SHA256" != "$DIRECTOR_EXPECTED_SHA256" ]; then
-  err "Хеш не совпадает с DIRECTOR_EXPECTED_SHA256. Архив мог измениться или сеть подменила ответ — установка остановлена."
-  exit 1
+  tar -xzf "$TARBALL_FILE" -C "$TMP"
+  SRC="$TMP/$SUBDIR"
 fi
 
-tar -xzf "$TARBALL_FILE" -C "$TMP"
-rm -rf "$SKILLS_DIR/director"
-cp -R "$TMP/$SUBDIR" "$SKILLS_DIR/director"
+# --- Проверяем структуру ДО того, как трогать активную установку ----
+[ -d "$SRC" ] || { err "Каталог director не найден в источнике ($SRC). Активная установка не тронута."; exit 1; }
+for f in "${REQUIRED_FILES[@]}"; do
+  [ -f "$SRC/$f" ] || { err "В источнике нет обязательного файла: $f. Активная установка не тронута."; exit 1; }
+done
 
+STAGE="$TMP/stage/director"
+mkdir -p "$TMP/stage"
+cp -R "$SRC" "$STAGE"
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf '{"code":"%s","tier":"%s","source":"curl-installer","ts":"%s"}\n' \
-  "$CODE" "$TIER" "$TS" > "$SKILLS_DIR/director/.activation.json"
-chmod 600 "$SKILLS_DIR/director/.activation.json" 2>/dev/null || true
+  "$CODE" "$TIER" "$TS" > "$STAGE/.activation.json"
+chmod 600 "$STAGE/.activation.json" 2>/dev/null || true
 
-for d in "$HOME/.hermes/skills" "$HOME/.qwen/skills" "$HOME/.codex/skills"; do
-  [ -d "$(dirname "$d")" ] || continue
-  mkdir -p "$d"; rm -rf "$d/director"; cp -R "$SKILLS_DIR/director" "$d/director"
+# --- Выбор целевых сред (не перезаписываем всё молча) ---------------
+CANDIDATES=("$SKILLS_DIR")
+for base in "$HOME/.hermes/skills" "$HOME/.qwen/skills" "$HOME/.codex/skills"; do
+  [ -d "$(dirname "$base")" ] && CANDIDATES+=("$base")
 done
+
+say "Найденные среды для установки:"
+for i in "${!CANDIDATES[@]}"; do
+  mark=" (есть старая версия)"; [ -d "${CANDIDATES[$i]}/director" ] || mark=""
+  printf '  %d) %s%s\n' "$((i+1))" "${CANDIDATES[$i]}" "$mark"
+done
+printf 'Куда ставить? номера через пробел, Enter = только 1 (%s): ' "$SKILLS_DIR"
+read -r PICKS
+[ -z "${PICKS// }" ] && PICKS="1"
+
+# --- Атомарная замена: снимок → swap → откат при сбое --------------
+BK="$HOME/.director-backup/$(date +%Y%m%d-%H%M%S)"
+install_to() {
+  local base="$1" dst="$1/director"
+  mkdir -p "$base"
+  if [ -d "$dst" ]; then
+    mkdir -p "$BK"; cp -R "$dst" "$BK/$(printf '%s' "$base" | tr '/' '_')_director"
+  fi
+  local newdir="$base/director.new.$$"
+  rm -rf "$newdir"
+  cp -R "$STAGE" "$newdir"
+  # обязательные файлы на месте в новой копии?
+  local ok=1
+  for f in "${REQUIRED_FILES[@]}"; do [ -f "$newdir/$f" ] || ok=0; done
+  if [ "$ok" != 1 ]; then
+    rm -rf "$newdir"; err "Staging-копия для $base битая — активная версия не тронута."; return 1
+  fi
+  local olddir="$base/director.old.$$"
+  [ -d "$dst" ] && mv "$dst" "$olddir"
+  mv "$newdir" "$dst"
+  rm -rf "$olddir"
+  say "→ $dst"
+}
+for n in $PICKS; do
+  case "$n" in
+    ''|*[!0-9]*) continue ;;
+  esac
+  idx=$((n-1))
+  [ "$idx" -ge 0 ] && [ "$idx" -lt "${#CANDIDATES[@]}" ] && install_to "${CANDIDATES[$idx]}" || err "Пропущен пункт $n"
+done
+[ -d "$BK" ] && say "Снимок прошлых версий: $BK"
 
 # --- Готово --------------------------------------------------------
 say "Готово. Мастер-скилл 'director' установлен (тир: $TIER)."

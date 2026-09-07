@@ -30,7 +30,18 @@ _safe_set() {
     error "Внутренняя ошибка: недопустимое имя переменной '$varname'"
     exit 1
   fi
+  # Отвергаем управляющие символы и переводы строк — они ломают структуру
+  # генерируемых конфигов (.env heredoc, YAML, Caddyfile), даже без shell-инъекции.
+  if printf '%s' "$val" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+    error "Значение содержит управляющие символы / перевод строки — недопустимо."
+    exit 1
+  fi
   printf -v "$varname" '%s' "$val"
+}
+
+# Строгая проверка DNS-имени (для домена, который потом попадёт в Caddyfile под sudo).
+_valid_domain() {
+  [[ "$1" =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ ]]
 }
 
 ask_default() {
@@ -45,6 +56,18 @@ ask_required() {
   local val=""
   while [ -z "$val" ]; do
     read -r -p "$(echo -e "  ${BOLD}${prompt}${NC}: ")" val
+    [ -z "$val" ] && error "Это обязательное поле"
+  done
+  _safe_set "$varname" "$val"
+}
+
+# Ввод секрета — скрыто (read -s), значение в терминал НЕ попадает.
+ask_secret() {
+  local prompt="$1" varname="$2"
+  local val=""
+  while [ -z "$val" ]; do
+    read -r -s -p "$(echo -e "  ${BOLD}${prompt}${NC} (ввод скрыт): ")" val
+    echo
     [ -z "$val" ] && error "Это обязательное поле"
   done
   _safe_set "$varname" "$val"
@@ -140,7 +163,11 @@ LIGHTRAG_URL=""
 
 if [ "$INSTALL_MODE" = "1" ]; then
   echo ""
-  ask_required "Домен (например lrag.example.com)" DOMAIN
+  while true; do
+    ask_required "Домен (например lrag.example.com)" DOMAIN
+    _valid_domain "$DOMAIN" && break
+    error "Не похоже на доменное имя. Формат: sub.example.com"
+  done
   LIGHTRAG_URL="https://${DOMAIN}"
 
   ask_choice "Reverse proxy для SSL:" PROXY_MODE \
@@ -166,7 +193,11 @@ hint "  OpenAI:      https://api.openai.com/v1"
 echo ""
 
 ask_default "API endpoint" "https://polza.ai/api/v1" API_HOST
-ask_required "API ключ" API_KEY
+case "$API_HOST" in
+  https://*|http://*) : ;;
+  *) error "API endpoint должен начинаться с http:// или https://"; exit 1 ;;
+esac
+ask_secret "API ключ провайдера" API_KEY
 
 echo ""
 header "4. Модели"
@@ -361,14 +392,29 @@ ${DOMAIN} {
     }
 }
 "
-  if [ -f "$CADDY_FILE_PATH" ]; then
-    echo "$CADDY_BLOCK" | sudo tee -a "$CADDY_FILE_PATH" > /dev/null
-    sudo caddy reload --config "$CADDY_FILE_PATH" 2>/dev/null || warn "Перезагрузи Caddy: sudo systemctl reload caddy"
-    info "Блок добавлен в ${CADDY_FILE_PATH}"
+  # Показываем, что именно допишем в системный файл под sudo, и спрашиваем согласие.
+  echo ""
+  hint "В ${CADDY_FILE_PATH} (root-файл) будет добавлено:"
+  printf '%s\n' "$CADDY_BLOCK" | sed 's/^/    /'
+  read -r -p "$(echo -e "  ${BOLD}Дописать этот блок? [y/N]:${NC} ")" _caddy_ok
+  if [ "$_caddy_ok" != "y" ] && [ "$_caddy_ok" != "Y" ]; then
+    warn "Пропущено. Добавь блок в Caddyfile руками и перезагрузи Caddy."
   else
-    warn "Файл ${CADDY_FILE_PATH} не найден — создаю"
-    echo "$CADDY_BLOCK" | sudo tee "$CADDY_FILE_PATH" > /dev/null
-    info "Caddyfile создан: ${CADDY_FILE_PATH}"
+    _tmp_caddy="$(mktemp)"
+    if [ -f "$CADDY_FILE_PATH" ]; then
+      sudo cat "$CADDY_FILE_PATH" > "$_tmp_caddy" 2>/dev/null || :
+    fi
+    printf '%s\n' "$CADDY_BLOCK" >> "$_tmp_caddy"
+    if sudo caddy validate --config "$_tmp_caddy" --adapter caddyfile 2>/dev/null; then
+      sudo cp "$_tmp_caddy" "$CADDY_FILE_PATH"
+      sudo caddy reload --config "$CADDY_FILE_PATH" 2>/dev/null \
+        || warn "Не смог перезагрузить Caddy сам — сделай: sudo systemctl reload caddy"
+      info "Блок добавлен в ${CADDY_FILE_PATH} (конфиг прошёл caddy validate)"
+    else
+      error "Получившийся Caddyfile не проходит 'caddy validate' — НЕ применяю."
+      hint  "Добавь блок вручную и проверь конфиг сам."
+    fi
+    rm -f "$_tmp_caddy"
   fi
 elif [ "$PROXY_MODE" = "2" ]; then
   # Caddy в Docker
@@ -428,17 +474,26 @@ for i in $(seq 1 30); do
   fi
 done
 
-# Образ gzdaniel/postgres-for-rag может создавать пользователя rag на этапе сборки
-# образа, а не только через initdb — тогда переданный нами POSTGRES_PASSWORD может
-# не примениться, и реальным паролем останется старый/дефолтный. Проверяем это,
-# а не верим переменной на слово.
-if docker exec -e PGPASSWORD="${POSTGRES_PASSWORD}" lightrag-postgres psql -U rag -d rag -c "SELECT 1" &>/dev/null; then
-  info "Пароль PostgreSQL подтверждён рабочим (не дефолтный)"
+# Проверка пароля PostgreSQL — по-настоящему, через TCP (не локальный Unix-сокет:
+# у сокета в pg_hba может стоять trust, и тогда любой пароль "подойдёт" — ложный успех).
+# Форсим TCP через 127.0.0.1 внутри контейнера + отдельно проверяем, что ЗАВЕДОМО
+# НЕВЕРНЫЙ пароль отклоняется. Не подтвердилось — останавливаем установку.
+_pg_tcp() { # $1 = пароль
+  docker exec -e PGPASSWORD="$1" lightrag-postgres \
+    psql -h 127.0.0.1 -U rag -d rag -tAc "SELECT 1" 2>/dev/null | grep -q '^1$'
+}
+if _pg_tcp "$POSTGRES_PASSWORD" && ! _pg_tcp "definitely-wrong-$(openssl rand -hex 4)"; then
+  info "Пароль PostgreSQL подтверждён по TCP (верный проходит, неверный отклоняется)"
 else
-  warn "Сгенерированный пароль PostgreSQL не подошёл при проверке — похоже, образ"
-  warn "gzdaniel/postgres-for-rag игнорирует POSTGRES_PASSWORD после первой сборки."
-  warn "Реальный пароль БД может остаться дефолтным. Смени его вручную:"
-  hint "  docker exec -it lightrag-postgres psql -U rag -d rag -c \"ALTER USER rag WITH PASSWORD '${POSTGRES_PASSWORD}';\""
+  error "Не удалось подтвердить, что PostgreSQL реально требует сгенерированный пароль."
+  error "Возможные причины: образ gzdaniel/postgres-for-rag игнорирует POSTGRES_PASSWORD,"
+  error "либо в pg_hba.conf стоит trust для TCP. Оставлять так небезопасно."
+  hint  "Почини вручную и запусти скрипт заново:"
+  hint  "  docker exec -it lightrag-postgres psql -U rag -d rag"
+  hint  "  затем: ALTER USER rag WITH PASSWORD '<пароль из ~/lightrag/credentials.txt>';"
+  hint  "  и проверь pg_hba.conf (host-строки должны быть scram-sha-256/md5, не trust)"
+  docker compose down 2>/dev/null || true
+  exit 1
 fi
 
 # Ожидание LightRAG
@@ -472,34 +527,28 @@ echo -e "  ${BOLD}Пароль:${NC}     ****$(printf '%s' "$ADMIN_PASSWORD" | t
 echo -e "  ${BOLD}API ключ:${NC}   ****$(printf '%s' "$LIGHTRAG_API_KEY" | tail -c 4)   (полностью — в credentials.txt)"
 echo ""
 
-# --- Claude Code (локальный Mac) ---
-echo -e "  ${BOLD}─── Подключение к Claude Code (локально на Mac) ───${NC}"
+# Команды подключения НЕ содержат ключ открытым текстом — он подтягивается из
+# credentials.txt (chmod 600) переменной прямо в момент запуска. Версии MCP-пакетов
+# закреплены — не тянем "свежую неизвестную" через npx -y без версии.
+MCP_PKG="@g99/lightrag-mcp-server@1.1.0"
+echo -e "  ${GRAY}Ключ в командах ниже подставляется из ~/lightrag/credentials.txt, не печатается.${NC}"
 echo ""
+echo -e "  ${BOLD}─── Claude Code (локально на Mac) ───${NC}"
+echo -e "  ${CYAN}LR_KEY=\$(awk '/^API ключ:/{print \$NF}' ~/lightrag/credentials.txt)${NC}"
 echo -e "  ${CYAN}claude mcp add --scope user lightrag \\\\${NC}"
-echo -e "  ${CYAN}  -e LIGHTRAG_SERVER_URL=\"${LIGHTRAG_URL}\" \\\\${NC}"
-echo -e "  ${CYAN}  -e LIGHTRAG_API_KEY=\"${LIGHTRAG_API_KEY}\" \\\\${NC}"
-echo -e "  ${CYAN}  -- npx -y @g99/lightrag-mcp-server${NC}"
+echo -e "  ${CYAN}  -e LIGHTRAG_SERVER_URL=\"${LIGHTRAG_URL}\" -e LIGHTRAG_API_KEY=\"\$LR_KEY\" \\\\${NC}"
+echo -e "  ${CYAN}  -- npx -y ${MCP_PKG}${NC}"
 echo ""
-
-# --- Claude Code (на сервере) ---
-echo -e "  ${BOLD}─── Подключение к Claude Code (на сервере) ───${NC}"
-echo ""
+echo -e "  ${BOLD}─── Claude Code (на сервере) ───${NC}"
+echo -e "  ${CYAN}LR_KEY=\$(awk '/^API ключ:/{print \$NF}' ~/lightrag/credentials.txt)${NC}"
 echo -e "  ${CYAN}claude mcp add --scope user lightrag \\\\${NC}"
-echo -e "  ${CYAN}  -e LIGHTRAG_SERVER_URL=\"http://localhost:9621\" \\\\${NC}"
-echo -e "  ${CYAN}  -e LIGHTRAG_API_KEY=\"${LIGHTRAG_API_KEY}\" \\\\${NC}"
-echo -e "  ${CYAN}  -- npx -y @g99/lightrag-mcp-server${NC}"
+echo -e "  ${CYAN}  -e LIGHTRAG_SERVER_URL=\"http://localhost:9621\" -e LIGHTRAG_API_KEY=\"\$LR_KEY\" \\\\${NC}"
+echo -e "  ${CYAN}  -- npx -y ${MCP_PKG}${NC}"
 echo ""
-
-# --- OpenClaw (на сервере) ---
-echo -e "  ${BOLD}─── Подключение к OpenClaw (на сервере) ───${NC}"
-echo ""
-echo -e "  Через CLI (рекомендуется):"
-echo -e "  ${CYAN}openclaw mcp set lightrag '{\"command\":\"npx\",\"args\":[\"-y\",\"@g99/lightrag-mcp-server\"],\"env\":{\"LIGHTRAG_SERVER_URL\":\"http://localhost:9621\",\"LIGHTRAG_API_KEY\":\"${LIGHTRAG_API_KEY}\"}}'${NC}"
-echo ""
-echo -e "  Через домен (если OpenClaw на другой машине):"
-echo -e "  ${CYAN}openclaw mcp set lightrag '{\"command\":\"npx\",\"args\":[\"-y\",\"@g99/lightrag-mcp-server\"],\"env\":{\"LIGHTRAG_SERVER_URL\":\"${LIGHTRAG_URL}\",\"LIGHTRAG_API_KEY\":\"${LIGHTRAG_API_KEY}\"}}'${NC}"
-echo ""
-echo -e "  Перезапусти: ${CYAN}docker restart <контейнер-openclaw>${NC}"
+echo -e "  ${BOLD}─── Hermes ───${NC}"
+echo -e "  ${GRAY}hermes mcp add --interactive lightrag --command npx --args -y ${MCP_PKG} \\\\${NC}"
+echo -e "  ${GRAY}    --env LIGHTRAG_SERVER_URL=... LIGHTRAG_API_KEY=<из credentials.txt>${NC}"
+echo -e "  ${GRAY}(выбери конкретные инструменты, не 'all'; проверь: hermes mcp list)${NC}"
 echo ""
 
 # --- NPM инструкция ---

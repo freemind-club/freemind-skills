@@ -17,13 +17,16 @@
 - [ ] `models.md` содержит только выбранные провайдеры, не все
 - [ ] `VERSION` записан
 - [ ] `profile.md` заполнен: среда, тир, промокод, память, SELF_MODEL, CHEAP_STACK, прод, тест-среда, связь
-- [ ] tier lite: секции протокола нет, память = `02-memory-lite`, апселл-блок есть
+- [ ] tier lite: секции протокола нет, память = `MEMORY_BACKEND` native/files (`02-memory-lite`), апселл-блок есть
 
 ## Память живая
 
 - [ ] full/trial: LightRAG `get_health` = ok; тест `insert_text`→`query_text`→удалить — находит
 - [ ] full/trial: PostgreSQL `SELECT 1` ok; тест INSERT→SELECT→DELETE через write-MCP — проходит
-- [ ] файловая: `memory/MEMORY.md` есть, тестовый файл пишется/читается
+- [ ] `native`: директор видит штатную память среды, тест-запись читается
+- [ ] `files`: `MEMORY.md` + `journal.md` есть, тестовый файл пишется/читается
+- [ ] `lightrag*`: `get_health` ok + insert→query→delete (+ PG SELECT 1 для `lightrag_postgres`)
+- [ ] выбранный бэкенд не поднялся → директор НЕ заблокирован, собран на `files`, отмечено в profile
 
 ## Данные пользователя целы (сверка с Шагом 0.7)
 

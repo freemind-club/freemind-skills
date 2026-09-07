@@ -52,7 +52,7 @@ claude mcp add --scope user lightrag \
   "mcpServers": {
     "lightrag": {
       "command": "npx",
-      "args": ["-y", "@g99/lightrag-mcp-server"],
+      "args": ["-y", "@g99/lightrag-mcp-server@1.1.0"],
       "env": {
         "LIGHTRAG_SERVER_URL": "<URL>",
         "LIGHTRAG_API_KEY": "<LIGHTRAG_API_KEY>"
@@ -83,7 +83,7 @@ claude mcp add --scope user lightrag \
   "mcpServers": {
     "lightrag": {
       "command": "npx",
-      "args": ["-y", "@g99/lightrag-mcp-server"],
+      "args": ["-y", "@g99/lightrag-mcp-server@1.1.0"],
       "env": {
         "LIGHTRAG_SERVER_URL": "<URL>",
         "LIGHTRAG_API_KEY": "<LIGHTRAG_API_KEY>"
@@ -116,10 +116,10 @@ grep -q "LightRAG" ~/.claude/CLAUDE.md 2>/dev/null && echo "уже есть" || 
 
 ```bash
 # Если OpenClaw на том же сервере:
-openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server"],"env":{"LIGHTRAG_SERVER_URL":"http://localhost:9621","LIGHTRAG_API_KEY":"<LIGHTRAG_API_KEY>"}}'
+openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server@1.1.0"],"env":{"LIGHTRAG_SERVER_URL":"http://localhost:9621","LIGHTRAG_API_KEY":"<LIGHTRAG_API_KEY>"}}'
 
 # Если OpenClaw на другой машине:
-openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server"],"env":{"LIGHTRAG_SERVER_URL":"https://lrag.your-domain.com","LIGHTRAG_API_KEY":"<LIGHTRAG_API_KEY>"}}'
+openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-server@1.1.0"],"env":{"LIGHTRAG_SERVER_URL":"https://lrag.your-domain.com","LIGHTRAG_API_KEY":"<LIGHTRAG_API_KEY>"}}'
 ```
 
 Или через `~/.openclaw/openclaw.json` — добавь в `mcp.servers`:
@@ -129,7 +129,7 @@ openclaw mcp set lightrag '{"command":"npx","args":["-y","@g99/lightrag-mcp-serv
     "servers": {
       "lightrag": {
         "command": "npx",
-        "args": ["-y", "@g99/lightrag-mcp-server"],
+        "args": ["-y", "@g99/lightrag-mcp-server@1.1.0"],
         "env": {
           "LIGHTRAG_SERVER_URL": "<URL>",
           "LIGHTRAG_API_KEY": "<LIGHTRAG_API_KEY>"

@@ -98,18 +98,26 @@ docker exec lightrag-postgres psql -U rag -c "SELECT pg_size_pretty(pg_database_
 ⛔ Это не рутинное обслуживание. Выполняй ТОЛЬКО когда пользователь явно попросил стереть всю память и подтвердил, что понимает — назад пути нет. Перед этим — сделай бэкап (см. раздел «Бэкап» выше) и покажи пользователю путь к файлу бэкапа.
 
 ```bash
+set -euo pipefail
 cd ~/lightrag
-# Бэкап перед сбросом — обязательно:
-docker exec lightrag-postgres pg_dump -U rag rag > ~/backups/before_reset_$(date +%Y%m%d_%H%M%S).sql
 
-# Подтверждение — пользователь должен ввести точное имя ресурса, не просто "да":
+# --- 1. Бэкап во временный файл, проверяем что он реальный ---
+mkdir -p ~/backups && chmod 700 ~/backups
+BK_TMP="$(mktemp ~/backups/before_reset.XXXXXX.sql)"
+docker exec lightrag-postgres pg_dump -U rag rag > "$BK_TMP"          # exit code проверит set -e
+[ -s "$BK_TMP" ] || { echo "Бэкап пустой — сброс отменён."; rm -f "$BK_TMP"; exit 1; }
+grep -q 'PostgreSQL database dump' "$BK_TMP" || { echo "Бэкап не похож на дамп — сброс отменён."; exit 1; }
+BK="$HOME/backups/before_reset_$(date +%Y%m%d_%H%M%S).sql"
+mv "$BK_TMP" "$BK"
+echo "Бэкап готов и проверен: $BK ($(wc -c < "$BK") байт)"
+
+# --- 2. Подтверждение точной фразой ---
 read -r -p "Для необратимого удаления памяти введи 'УДАЛИТЬ ВСЁ': " CONFIRM
-if [ "$CONFIRM" != "УДАЛИТЬ ВСЁ" ]; then
-  echo "Отменено."
-  exit 1
-fi
+[ "$CONFIRM" = "УДАЛИТЬ ВСЁ" ] || { echo "Отменено. Бэкап остаётся: $BK"; exit 1; }
 
+# --- 3. Только теперь сброс (set -e гарантирует, что мы не дошли сюда без бэкапа) ---
 docker compose down
 docker volume rm lightrag_postgres_data lightrag_rag_storage lightrag_inputs
 docker compose up -d
+echo "Сброшено. Восстановить из бэкапа: docker exec -i lightrag-postgres psql -U rag rag < $BK"
 ```

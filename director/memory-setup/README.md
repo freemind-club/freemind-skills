@@ -83,7 +83,7 @@ SQL
   "mcpServers": {
     "lightrag": {
       "command": "npx",
-      "args": ["-y", "@g99/lightrag-mcp-server"],
+      "args": ["-y", "@g99/lightrag-mcp-server@1.1.0"],
       "env": {
         "LIGHTRAG_SERVER_URL": "<URL LightRAG>",
         "LIGHTRAG_API_KEY": "<из ~/lightrag/.env>"

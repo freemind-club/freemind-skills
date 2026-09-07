@@ -4,7 +4,7 @@
 
 ---
 
-## Прогон 1 — tier full, среда Claude Code, память два полушария
+## Прогон 1 — tier full, среда Claude Code, `MEMORY_BACKEND=lightrag_postgres`
 
 **Вход (ответы интервью):**
 - Промокод: `FreeMind` → tier `full`
@@ -12,7 +12,7 @@
 - Шаг 0.7: чисто (новая машина), MCP-конфига нет
 - Имя: Олег · ниша: клуб по нейросетям, автоматизация · язык: русский
 - Папка: `/root/YandexSync/ClaudeCode`, git с remote
-- Память: два полушария сейчас. LightRAG найден (`localhost:9621`, ключ в `~/lightrag/.env`) → подключиться. БД `brain` есть, схема `clients/subscribers/analytics/key_facts` → добавить нечего
+- Память: пользователь попросил умную память с аналитикой → `lightrag_postgres`, согласие про приватность получено. LightRAG найден (`localhost:9621`, ключ в `~/lightrag/.env`) → подключиться. БД `brain` есть, схема `clients/subscribers/analytics/key_facts` → добавить нечего
 - Оркестратор: Claude (подписка). Исполнители: `1) субагенты 2) OmniRoute kiro/claude-sonnet-4.5 3) Groq llama-3.3-70b`
 - Инструменты: n8n (MCP), Telegram-бот алертов
 - Тест-среда: `@test_chanel_freemind` (-1002712137302), бот `@fremind_n8n_test_bot`
@@ -49,7 +49,7 @@
 - Среда: ни `~/.claude`, ни hermes/qwen/codex → `generic`
 - Имя: Марина · ниша: фотограф · язык: русский
 - Папка: `~/work`, git без remote
-- Память: файловая (lite — вопросов 5-6 нет)
+- Память: `MEMORY_BACKEND=files` (lite — вопросов 5-6 нет)
 - Делегирование: только субагенты (lite)
 - Тест-среда: нет
 - Прод: публикация постов в Instagram

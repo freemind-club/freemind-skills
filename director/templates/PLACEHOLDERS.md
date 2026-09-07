@@ -11,7 +11,8 @@
 | `TIER` | Шаг 0 | `full` / `lite` / `trial` |
 | `PROMO_CODE` | Шаг 0 | `FreeMind` (записывается в profile для сверки постфактум) |
 | `INVENTORY_SUMMARY` | Шаг 0.7 | «Нашёл: LightRAG с данными (подключён), 2 MCP-сервера, AGENTS.md (блок добавлен). Не тронуто.» |
-| `MEMORY_KIND` | Блок 2 | `два полушария` / `файловая (апгрейд позже)` / `файловая (lite)` |
+| `MEMORY_BACKEND` | Блок 2 | `native` / `files` / `lightrag` / `lightrag_postgres`. Дефолт: `native` где у среды есть штатная память (Hermes, Cursor), иначе `files`. `lightrag*` — только если пользователь сформулировал потребность |
+| `MEMORY_KIND` | Блок 2 | человекочитаемо: `штатная память среды` / `файловая` / `смысловая (LightRAG)` / `LightRAG + PostgreSQL` |
 | `BACKUP_TS` | Шаг 0.6 | `20260902-143000` — метка снимка |
 | `BACKUP_PATH` | Шаг 0.6 | `~/.director-backup/20260902-143000/` (пишется в profile) |
 | `RESTORE_FILE_LINES` / `REMOVE_DIRECTOR_LINES` / `DB_RESTORE_HINT` | Шаг 0.6, производное | строки для `restore.sh` под конкретные файлы этой установки |
@@ -33,7 +34,10 @@
 | `STATUS_FILES` | скан проекта | `STATUS.md, TODO.md, journal.md` |
 | `START_EXTRA` | Блок 3 в9 | `n8n health check через MCP` или «—» |
 
-## Память — два полушария (tier full/trial; для lite не нужны)
+## Память — заполняется только при `MEMORY_BACKEND` = `lightrag` / `lightrag_postgres`
+
+Для `native` / `files` эти плейсхолдеры не нужны — соответствующие блоки в ядре/адаптере удаляются.
+`PG_*` — только при `lightrag_postgres`.
 
 | KEY | Откуда | Пример |
 |-----|--------|--------|

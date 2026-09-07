@@ -26,11 +26,11 @@
 ## Параметры {{USER_NAME}}
 - Прод (только с ОК): {{PROD_DEFINITION}}. Тест-среда: {{TEST_ENV_LINE}}
 - Оркестратор: {{SELF_MODEL}}. Исполнители: {{CHEAP_STACK}}
-- Память: MCP `{{LIGHTRAG_MCP}}` (query_text hybrid / insert_text) + `{{PG_MCP}}` (SQL, запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет памяти → не работать, сказать {{USER_NAME}}
+- Память (бэкенд `{{MEMORY_BACKEND}}`; `files` → `MEMORY.md`, `lightrag*` → MCP): `{{LIGHTRAG_MCP}}` (query_text hybrid / insert_text) + `{{PG_MCP}}` (SQL, запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет рабочей памяти выбранного бэкенда `{{MEMORY_BACKEND}}` → сказать {{USER_NAME}}, не зависать
 - Старт-контекст: {{START_CONTEXT_FILES}}. Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}} ({{ALERT_VERBOSITY}}). Обращение {{ADDRESS_FORM}}. Часы тишины {{QUIET_HOURS}}
 
 ## Среда
-Протокол лёгкий: старт — recall из LightRAG (молча) + контекст + git status + брифинг; финал — журнал + память (с ОК) + git add конкретных файлов + commit + push. Субагентов нет.
+Протокол лёгкий: старт — recall из памяти бэкенда `{{MEMORY_BACKEND}}` (молча) + контекст + git status + брифинг; финал — журнал + память (с ОК) + git add конкретных файлов → показать remote/файлы → спросить «запушить?» → только после «да» commit + push. Субагентов нет.
 
 {{FREEMIND_LINE}}
 <!-- ═══ /DIRECTOR ═══ -->

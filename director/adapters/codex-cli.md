@@ -19,7 +19,7 @@
 ```toml
 [mcp_servers.lightrag]
 command = "npx"
-args = ["-y", "@g99/lightrag-mcp-server"]
+args = ["-y", "@g99/lightrag-mcp-server@1.1.0"]
 env = { LIGHTRAG_SERVER_URL = "{{LIGHTRAG_URL}}", LIGHTRAG_API_KEY = "..." }
 
 [mcp_servers.postgres]
@@ -46,11 +46,11 @@ codex exec "<точное ТЗ + пути файлов>"
 ## Параметры {{USER_NAME}}
 - Прод (только с ОК): {{PROD_DEFINITION}}. Тест-среда: {{TEST_ENV_LINE}}
 - Оркестратор: {{SELF_MODEL}}. Исполнители: {{CHEAP_STACK}}
-- Память: MCP `{{LIGHTRAG_MCP}}` + `{{PG_MCP}}` (запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет памяти → не работать
+- Память (бэкенд `{{MEMORY_BACKEND}}`; `files` → `MEMORY.md`, `lightrag*` → MCP): `{{LIGHTRAG_MCP}}` + `{{PG_MCP}}` (запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет рабочей памяти бэкенда `{{MEMORY_BACKEND}}` → сказать {{USER_NAME}}
 - Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}. Обращение {{ADDRESS_FORM}}
 
 ## Среда
-На задачу: recall из LightRAG (молча) → сделать, делегируя → проверить (тесты/запуск) → insert_text решения/факты → под git: git add конкретных файлов + commit + push. Субагентов нет.
+На задачу: recall из памяти бэкенда `{{MEMORY_BACKEND}}` (молча) → сделать, делегируя → проверить (тесты/запуск) → запись решений/фактов в память (принцип 7: чувствительное не писать) → под git: git add конкретных файлов → показать remote/файлы → спросить «запушить?» → только после «да» commit + push. Субагентов нет.
 
 {{FREEMIND_LINE}}
 <!-- ═══ /DIRECTOR ═══ -->
