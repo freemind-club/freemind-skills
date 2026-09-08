@@ -7,25 +7,16 @@
 | Аспект | Как |
 |--------|-----|
 | Инструкции | блок между маркерами **в конец** `AGENTS.md` (проект) или `~/.codex/AGENTS.md` (глобально); чужое не трогать |
-| MCP | `~/.codex/config.toml` → `[mcp_servers.<name>]` рядом с существующими |
+| MCP | не требуется для `native`/`files`; граф-память (ручной апгрейд, не визардом) — `[mcp_servers.<name>]` в `~/.codex/config.toml` рядом с существующими |
 | Оркестратор | модель Codex |
 | Протокол | лёгкий, на задачу (Codex — одна задача за запуск) |
 | Субагенты | нет |
 
 Доктрина: `director-doctrine/` рядом с `AGENTS.md` = копии `core/00–05` + `models.md` + `skills.md`.
 
-## MCP (`config.toml`)
+## MCP
 
-```toml
-[mcp_servers.lightrag]
-command = "npx"
-args = ["-y", "@g99/lightrag-mcp-server@1.1.0"]
-env = { LIGHTRAG_SERVER_URL = "{{LIGHTRAG_URL}}", LIGHTRAG_API_KEY = "..." }
-
-[mcp_servers.postgres]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://.../brain"]
-```
+Директор на `native`/`files` MCP-серверов **не требует** — визард ничего не подключает. Если {{USER_NAME}} сам поднял граф-память и хочет её подключить: секция `[mcp_servers.<name>]` в `~/.codex/config.toml` рядом с существующими, пакеты — с закреплённой версией. Это вне сборки директора → [../memory-setup/README.md](../memory-setup/README.md).
 
 ## Как делегат кода (директор в другой среде)
 
@@ -46,7 +37,7 @@ codex exec "<точное ТЗ + пути файлов>"
 ## Параметры {{USER_NAME}}
 - Прод (только с ОК): {{PROD_DEFINITION}}. Тест-среда: {{TEST_ENV_LINE}}
 - Оркестратор: {{SELF_MODEL}}. Исполнители: {{CHEAP_STACK}}
-- Память (бэкенд `{{MEMORY_BACKEND}}`; `files` → `MEMORY.md`, `lightrag*` → MCP): `{{LIGHTRAG_MCP}}` + `{{PG_MCP}}` (запись `{{PG_WRITE_MCP}}`), таблицы {{PG_TABLES}}. Нет рабочей памяти бэкенда `{{MEMORY_BACKEND}}` → сказать {{USER_NAME}}
+- Память (бэкенд `{{MEMORY_BACKEND}}` — `native`/`files`): `native` → штатная память среды; `files` → `MEMORY.md`+`journal.md` в каталоге директора. Recall в начале — молча. Нет рабочей памяти → сказать {{USER_NAME}}, не притворяться, что помню. Принцип 7: чувствительное не писать
 - Связь: {{ALERT_CHANNEL}} → {{ALERT_TARGET}}. Обращение {{ADDRESS_FORM}}
 
 ## Среда

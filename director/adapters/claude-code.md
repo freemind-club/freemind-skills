@@ -10,7 +10,7 @@
 | Куда | `~/.claude/skills/my-director/` |
 | Автозагрузка | SessionStart-хук → [../templates/sessionstart-hook.md](../templates/sessionstart-hook.md) |
 | Вручную | `/my-director` |
-| MCP | добавить `lightrag`/`postgres`/`postgres_write` **в существующий** `~/.claude/mcp.json` (или `.mcp.json` проекта), не перезаписывать |
+| MCP | `native`/`files` MCP не требуют — визард не трогает `~/.claude/mcp.json`. Граф-память (ручной апгрейд, вне визарда) — MCP добавляется **в существующий** конфиг рядом, не перезаписывая |
 | Исполнители | субагенты (`Task`) + опц. свой endpoint → [../models/00_ROUTER.md](../models/00_ROUTER.md) |
 | Оркестратор (`SELF_MODEL`) | текущая модель Claude Code |
 | Протокол сессии | core/05 (полный) |
@@ -29,10 +29,10 @@
 │   ├── models.md                          ← склейка ../models/* только выбранных
 │   ├── skills.md                          ← ../templates/skills.md + скан скиллов
 │   └── 06-freemind-stack.md               ← если Блок 5 = да
-└── memory/           ← только tier lite / файловая по выбору
+└── memory/           ← при MEMORY_BACKEND=files (MEMORY.md + журнал); при native не создаётся
 ```
 
-tier `lite`: секция ПРОТОКОЛ убрать; `references/02-memory.md` = `core/02-memory-lite.md`; точечные строки (автономия/часы/verbosity) убрать; блок апселла добавить.
+tier `lite`: секция ПРОТОКОЛ убрать; точечные строки (автономия/часы/verbosity) убрать; блок апселла добавить. Память — тот же `core/02-memory.md` (`native`/`files`), отдельного «lite»-файла памяти нет.
 
 ## Шаблон `SKILL.md` (тонкий — не дублирует доктрину)
 
@@ -58,7 +58,7 @@ description: Personal AI-director. Load at the start of EVERY session, before de
 
 | Файл | О чём |
 |------|-------|
-| [references/00-director.md](references/00-director.md) | суть роли + 10 принципов |
+| [references/00-director.md](references/00-director.md) | суть роли + 13 принципов |
 | [references/01-delegation.md](references/01-delegation.md) | цепочка делегирования, оркестрация субагентов |
 | [references/02-memory.md](references/02-memory.md) | память: бэкенд `{{MEMORY_BACKEND}}` — как помнить |
 | [references/03-rules.md](references/03-rules.md) | железные правила безопасности |
@@ -71,7 +71,7 @@ description: Personal AI-director. Load at the start of EVERY session, before de
 - **Прод** (действия только с явного ОК): {{PROD_DEFINITION}}
 - **Тест-среда**: {{TEST_ENV_LINE}}
 - **Оркестратор**: {{SELF_MODEL}}. **Исполнители** по порядку: {{CHEAP_STACK}}
-- **Память** (бэкенд `{{MEMORY_BACKEND}}`): `files` → `MEMORY.md`+`journal.md`; `lightrag*` → MCP `{{LIGHTRAG_MCP}}` (+ `{{PG_MCP}}` / запись `{{PG_WRITE_MCP}}`, таблицы {{PG_TABLES}}). Выбранный бэкенд не поднялся → сказать {{USER_NAME}}, предложить `files`. **Принцип 7:** чувствительное не сохранять.
+- **Память** (бэкенд `{{MEMORY_BACKEND}}` — `native`/`files`): `native` → штатная память среды; `files` → `MEMORY.md`+`journal.md` в каталоге директора. Recall в начале — молча. Нет рабочей памяти → сказать {{USER_NAME}}, не притворяться, что помню. **Принцип 7:** чувствительное не писать.
 - **Старт-контекст**: {{START_CONTEXT_FILES}}. Инбокс: {{INBOX_PATH}}. Доп: {{START_EXTRA}}
 - **Связь**: {{ALERT_CHANNEL}} → {{ALERT_TARGET}} ({{ALERT_VERBOSITY}})
 - **Автономия**: {{AUTONOMY_LEVEL}} — {{AUTONOMY_NOTE}}
@@ -80,7 +80,7 @@ description: Personal AI-director. Load at the start of EVERY session, before de
 ## СРЕДА
 
 - Субагенты — через `Task`, дословное ТЗ. Делегировал → лично проверил.
-- Git commit+push **конкретных файлов** (не `git add -A`), включая свои `profile.md`/`journal.md`, если под git.
+- Git — по протоколу финала (`references/05-protocol.md`): commit только по просьбе/согласованию, **конкретные файлы** (не `git add -A`), push — отдельное явное «да, отправляй». Свои `profile.md`/`journal.md` — на тех же условиях.
 - Скилл под задачу есть → использовать молча (см. references/skills.md).
 
 {{FREEMIND_LINE}}

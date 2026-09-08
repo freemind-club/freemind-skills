@@ -10,9 +10,9 @@
 | `VERSION` | файл `VERSION` мастера | `1.0.0` |
 | `TIER` | Шаг 0 | `full` / `lite` / `trial` |
 | `PROMO_CODE` | Шаг 0 | `FreeMind` (записывается в profile для сверки постфактум) |
-| `INVENTORY_SUMMARY` | Шаг 0.7 | «Нашёл: LightRAG с данными (подключён), 2 MCP-сервера, AGENTS.md (блок добавлен). Не тронуто.» |
-| `MEMORY_BACKEND` | Блок 2 | `native` / `files` / `lightrag` / `lightrag_postgres`. Дефолт: `native` где у среды есть штатная память (Hermes, Cursor), иначе `files`. `lightrag*` — только если пользователь сформулировал потребность |
-| `MEMORY_KIND` | Блок 2 | человекочитаемо: `штатная память среды` / `файловая` / `смысловая (LightRAG)` / `LightRAG + PostgreSQL` |
+| `INVENTORY_SUMMARY` | Шаг 0.7 | «Нашёл: существующий сервис памяти с данными (подключён как есть), 2 MCP-сервера, AGENTS.md (блок добавлен). Не тронуто.» |
+| `MEMORY_BACKEND` | Блок 2 | `native` / `files`. Дефолт: `native` где у среды есть штатная память (Hermes, Cursor), иначе `files`. Граф-память (LightRAG) — вне визарда, ручной апгрейд |
+| `MEMORY_KIND` | Блок 2 | человекочитаемо: `штатная память среды` / `файловая` |
 | `BACKUP_TS` | Шаг 0.6 | `20260902-143000` — метка снимка |
 | `BACKUP_PATH` | Шаг 0.6 | `~/.director-backup/20260902-143000/` (пишется в profile) |
 | `RESTORE_FILE_LINES` / `REMOVE_DIRECTOR_LINES` / `DB_RESTORE_HINT` | Шаг 0.6, производное | строки для `restore.sh` под конкретные файлы этой установки |
@@ -34,20 +34,9 @@
 | `STATUS_FILES` | скан проекта | `STATUS.md, TODO.md, journal.md` |
 | `START_EXTRA` | Блок 3 в9 | `n8n health check через MCP` или «—» |
 
-## Память — заполняется только при `MEMORY_BACKEND` = `lightrag` / `lightrag_postgres`
+## Память — граф-память (LightRAG / PostgreSQL)
 
-Для `native` / `files` эти плейсхолдеры не нужны — соответствующие блоки в ядре/адаптере удаляются.
-`PG_*` — только при `lightrag_postgres`.
-
-| KEY | Откуда | Пример |
-|-----|--------|--------|
-| `LIGHTRAG_MCP` | Блок 2 в5 | `lightrag` |
-| `LIGHTRAG_URL` | Блок 2 в5 / `~/lightrag/.env` | `https://lrag.example.ru` или `http://localhost:9621` |
-| `PG_MCP` | Блок 2 в6 | `postgres` (read-only) |
-| `PG_WRITE_MCP` | Блок 2 в6 | `postgres_write` |
-| `PG_CONN_REF` / `PG_WRITE_REF` | Блок 2 в6 | `postgresql://user:pass@host/brain` (в credentials, не в файле) |
-| `PG_TABLES` | Блок 2 в6 / дефолт | `clients, subscribers, analytics, key_facts` |
-| `MEMORY_COORDS` | Блок 2 | «`~/lightrag/.env`, `~/.claude/mcp.json`» |
+`LIGHTRAG_*`, `PG_*`, `MEMORY_COORDS` — заполняются только если {{USER_NAME}} вручную подключил граф-память как апгрейд. **Визардом не заполняются**, в `native`/`files`-сборке соответствующих блоков в ядре/адаптере нет. Ручное подключение → [../memory-setup/README.md](../memory-setup/README.md).
 
 ## Делегирование и модели
 

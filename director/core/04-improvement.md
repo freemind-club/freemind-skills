@@ -16,7 +16,7 @@
 | Косяк (разовый, конкретный) | таблица косяков в [journal.md](../journal.md) |
 | Косяк → общее правило | соответствующий reference (`rules.md` / `delegation.md` / `memory.md` / `protocols.md`) + строка в journal |
 | Успех / рабочий паттерн | таблица успехов в [journal.md](../journal.md) |
-| Факт/предпочтение о {{USER_NAME}} | LightRAG (`insert_text`) — или файловая память в lite |
+| Факт/предпочтение о {{USER_NAME}} | память бэкенда `{{MEMORY_BACKEND}}` (native/files) |
 
 ## Формат
 

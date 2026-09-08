@@ -3,8 +3,22 @@
 #  FreeMind Installer
 #  github.com/lavrentev74-crypto/freemind-skills
 # ═══════════════════════════════════════════════════════════════
+#
+#  Использование:
+#    bash install.sh                 — интерактивное меню
+#    bash install.sh director        — только Директор (спросит промокод)
+#    bash install.sh base | all | "1 3 4"  — без меню
+#
+#  Запуск через `curl … | install.sh | bash -s director` поддержан:
+#  если рядом нет файлов репозитория, для Директора скачивается
+#  самодостаточный director/install.sh и запускается он.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+set -euo pipefail
+
+REPO_RAW="https://raw.githubusercontent.com/freemind-club/freemind-skills/main"
+BK_ROOT="$HOME/.freemind-skills-backup/$(date +%Y%m%d-%H%M%S)"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "/nonexistent")"
 CLAUDE_SKILLS="$HOME/.claude/skills"
 CODEX_SKILLS="$HOME/.codex/skills"
 OPENCLAW_DIR="$HOME/.openclaw/agents/main/agent"
@@ -12,8 +26,20 @@ N8N_DIR="$HOME/n8n-imports"
 BOTS_DIR="$HOME/freemind-bots"
 MCP_TARGET="$HOME"
 
+# ── Аргументы: без меню, если что-то передано ───────────────────
+CHOICES=""
+if [ "$#" -gt 0 ]; then
+  ARGS="$*"
+  case " $ARGS " in
+    *" director "*|*" 8 "*) CHOICES="8" ;;
+    *" all "*|*" 7 "*)      CHOICES="7" ;;
+    *" base "*)             CHOICES="1" ;;
+    *)                      CHOICES="$ARGS" ;;   # список номеров как есть
+  esac
+fi
+
 # ── Приветствие ─────────────────────────────────────────────────
-clear
+[ -z "$CHOICES" ] && clear
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║            🧠 FreeMind Installer                         ║"
@@ -61,8 +87,15 @@ echo "  ┌───────────────────────
 echo "  │ 7  Всё сразу (без Директора — он по промокоду)       │"
 echo "  └───────────────────────────────────────────────────────┘"
 echo ""
-read -p "  Твой выбор: " CHOICES
+if [ -z "$CHOICES" ]; then
+  read -p "  Твой выбор: " CHOICES || CHOICES=""
+fi
 echo ""
+
+if [ -z "${CHOICES// }" ]; then
+  echo "  ✖ Ничего не выбрано. Пример: bash install.sh director" >&2
+  exit 1
+fi
 
 # Если выбрано 7 — ставим всё (кроме Директора: он гейтится промокодом)
 if echo "$CHOICES" | grep -q "7"; then
@@ -79,14 +112,24 @@ fi
 # категоризированной структурой.
 install_skills_to() {
   local src="$1" dst="$2" label="$3"
-  local count=0
+  local count=0 overwritten=0
   mkdir -p "$dst"
   while IFS= read -r -d '' skill_md; do
     skill="$(dirname "$skill_md")"
+    local name; name="$(basename "$skill")"
+    if [ -e "$dst/$name" ]; then
+      mkdir -p "$BK_ROOT/$(basename "$dst")"
+      cp -r "$dst/$name" "$BK_ROOT/$(basename "$dst")/$name"
+      overwritten=$((overwritten+1))
+    fi
     cp -r "$skill" "$dst/"
     count=$((count+1))
   done < <(find "$src" -mindepth 1 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
+  if [ "$overwritten" -gt 0 ]; then
+    echo "  ⚠ $label: перезаписано $overwritten существующих — копии в $BK_ROOT"
+  fi
   echo "  ✅ $label: $count скиллов → $dst"
+  INSTALLED_ANY=1
 }
 
 # ── Определяем инструменты ──────────────────────────────────────

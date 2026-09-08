@@ -4,7 +4,7 @@
 
 ---
 
-## Прогон 1 — tier full, среда Claude Code, `MEMORY_BACKEND=lightrag_postgres`
+## Прогон 1 — tier full, среда Claude Code, `MEMORY_BACKEND=files`
 
 **Вход (ответы интервью):**
 - Промокод: `FreeMind` → tier `full`
@@ -12,7 +12,7 @@
 - Шаг 0.7: чисто (новая машина), MCP-конфига нет
 - Имя: Олег · ниша: клуб по нейросетям, автоматизация · язык: русский
 - Папка: `/root/YandexSync/ClaudeCode`, git с remote
-- Память: пользователь попросил умную память с аналитикой → `lightrag_postgres`, согласие про приватность получено. LightRAG найден (`localhost:9621`, ключ в `~/lightrag/.env`) → подключиться. БД `brain` есть, схема `clients/subscribers/analytics/key_facts` → добавить нечего
+- Память: `MEMORY_BACKEND=files` (визард граф-память не ставит). Пользователь сказал, что позже вручную поднимет `mozg` — записать в profile как «не подключена»
 - Оркестратор: Claude (подписка). Исполнители: `1) субагенты 2) OmniRoute kiro/claude-sonnet-4.5 3) Groq llama-3.3-70b`
 - Инструменты: n8n (MCP), Telegram-бот алертов
 - Тест-среда: `@test_chanel_freemind` (-1002712137302), бот `@fremind_n8n_test_bot`
@@ -33,12 +33,13 @@
 │   ├── models.md     # только anthropic + openai-compatible(OmniRoute,Groq) — НЕ gemini/grok/ru/codex
 │   ├── skills.md     # скан ~/.claude/skills + строка про freemind-club/freemind-skills
 │   └── 06-freemind-stack.md   # с координатами OmniRoute/n8n
-└── (memory/ НЕТ — не lite)
+└── memory/          # MEMORY.md (бэкенд files)
 ```
-- MCP `lightrag`/`postgres`/`postgres_write` добавлены в `~/.claude/mcp.json` (создан, т.к. не было)
+- MCP-серверы визард не добавляет (память `files`); `~/.claude/mcp.json` не трогается
 - SessionStart-хук предложен
 - `grep '{{'` = пусто
-- Проверка памяти: оба полушария зелёные
+- Проверка памяти: тест-заметка в `MEMORY.md` пишется и читается обратно
+- `profile.md` → «Граф-память (LightRAG): не подключена»
 
 ---
 
@@ -59,7 +60,7 @@
 **Ожидаемый выход:**
 - Один блок system-prompt (сжатая склейка `core/00–05` + профиль Марины), плейсхолдеры подставлены
 - Блок апселла: «Lite-версия… полный — в клубе FreeMind. Олег: t.me/Lavrentev_Oleg · lavrentevoleg.ru/social/club»
-- Инструкция: вставить блок в system-prompt агента; подключить MCP `lightrag`/`postgres` рядом с существующими (даже в lite память файловая — MCP только если сама файловая не подходит... в lite MCP не нужен, память = `memory/`)
+- Инструкция: вставить блок в system-prompt агента; MCP визард не подключает (память файловая = `memory/`)
 - `memory/MEMORY.md` создан
 - Правило тест-среды в тексте: «тест-среда не настроена — проверки, которые могут задеть реальное, останавливать и спрашивать»
 - `grep '{{'` = пусто

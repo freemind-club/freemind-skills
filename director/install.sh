@@ -9,6 +9,19 @@
 
 set -euo pipefail
 
+# `curl -fsSL …/director/install.sh | bash` кладёт текст скрипта в stdin —
+# тогда интерактивные `read` читали бы не пользователя, а сам скрипт.
+# Есть управляющий терминал — переключаем ввод на него. Нет — работаем
+# только по env-переменным (DIRECTOR_CODE / DIRECTOR_TARGETS), иначе стоп.
+INTERACTIVE=1
+if [ ! -t 0 ]; then
+  if [ -e /dev/tty ] && ( : </dev/tty ) 2>/dev/null; then
+    exec </dev/tty; INTERACTIVE=1
+  else
+    INTERACTIVE=0
+  fi
+fi
+
 SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 # Источник:
 #   1) DIRECTOR_LOCAL_DIR=/path/to/director  — ставить из уже проверенной локальной копии,
@@ -49,8 +62,17 @@ brand
 
 # --- Промокод (локальная проверка; список валидных кодов НЕ показываем) ---
 say "Директор — продукт клуба FreeMind."
-printf 'Введи промокод: '
-read -r CODE
+if [ -n "${DIRECTOR_CODE:-}" ]; then
+  CODE="$DIRECTOR_CODE"
+  say "Промокод взят из DIRECTOR_CODE."
+elif [ "$INTERACTIVE" = 1 ]; then
+  printf 'Введи промокод: '
+  read -r CODE || CODE=""
+else
+  err "Нет терминала для ввода промокода. Запусти установщик в терминале, либо:"
+  err "  curl -fsSL <url>/director/install.sh -o d.sh && DIRECTOR_CODE=<код> bash d.sh"
+  exit 1
+fi
 CODE_NORM="$(printf '%s' "${CODE:-}" | tr '[:upper:]' '[:lower:]')"
 case "$CODE_NORM" in
   freemind|nr_stas) TIER="full" ;;
@@ -92,11 +114,15 @@ else
       exit 1
     fi
     say "Контрольная сумма совпала."
-  else
+  elif [ "$INTERACTIVE" = 1 ]; then
     hint "Ожидаемый хеш не задан (DIRECTOR_EXPECTED_SHA256). Это режим UNVERIFIED —"
     hint "ты не можешь доказать, что скачал именно то, что проверял."
-    read -r -p "Продолжить без проверки целостности? [y/N]: " _unv
+    read -r -p "Продолжить без проверки целостности? [y/N]: " _unv || _unv=""
     [ "$_unv" = "y" ] || [ "$_unv" = "Y" ] || { err "Отменено."; exit 1; }
+  else
+    err "Режим UNVERIFIED без терминала запрещён. Задай DIRECTOR_EXPECTED_SHA256=<хеш архива>"
+    err "или ставь из проверенной копии: DIRECTOR_LOCAL_DIR=<путь>."
+    exit 1
   fi
 
   tar -xzf "$TARBALL_FILE" -C "$TMP"
@@ -117,20 +143,58 @@ printf '{"code":"%s","tier":"%s","source":"curl-installer","ts":"%s"}\n' \
   "$CODE" "$TIER" "$TS" > "$STAGE/.activation.json"
 chmod 600 "$STAGE/.activation.json" 2>/dev/null || true
 
-# --- Выбор целевых сред (не перезаписываем всё молча) ---------------
-CANDIDATES=("$SKILLS_DIR")
-for base in "$HOME/.hermes/skills" "$HOME/.qwen/skills" "$HOME/.codex/skills"; do
-  [ -d "$(dirname "$base")" ] && CANDIDATES+=("$base")
-done
+# --- Выбор целевых сред: ТОЛЬКО реально найденные (не плодим пустых каталогов) ---
+CANDIDATES=()
+add_cand() {
+  local p="$1"
+  case " ${CANDIDATES[*]-} " in *" $p "*) return 0 ;; esac
+  CANDIDATES+=("$p")
+}
+
+# 1) среда, из которой явно запущен установщик → рекомендуемый первый пункт
+case "${DIRECTOR_ENV:-}" in
+  claude) add_cand "$HOME/.claude/skills" ;;
+  hermes) add_cand "$HOME/.hermes/skills" ;;
+  qwen)   add_cand "$HOME/.qwen/skills" ;;
+  codex)  add_cand "$HOME/.codex/skills" ;;
+  cursor) add_cand "$HOME/.cursor/skills" ;;
+esac
+[ -n "${CLAUDE_SKILLS_DIR:-}" ] && add_cand "$SKILLS_DIR"
+
+# 2) далее — по факту: каталог среды существует ИЛИ бинарь в PATH
+{ [ -d "$HOME/.claude" ] || command -v claude >/dev/null 2>&1; }  && add_cand "$HOME/.claude/skills"
+{ [ -d "$HOME/.hermes" ] || command -v hermes >/dev/null 2>&1; }  && add_cand "$HOME/.hermes/skills"
+{ [ -d "$HOME/.qwen"   ] || command -v qwen   >/dev/null 2>&1; }  && add_cand "$HOME/.qwen/skills"
+{ [ -d "$HOME/.codex"  ] || command -v codex  >/dev/null 2>&1; }  && add_cand "$HOME/.codex/skills"
+[ -d "$HOME/.cursor" ] && add_cand "$HOME/.cursor/skills"
+
+if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+  err "Не нашёл ни одной поддерживаемой среды (Claude Code / Hermes / Qwen Code / Codex / Cursor)."
+  err "Поставь агента, либо укажи каталог скиллов явно:"
+  err "  CLAUDE_SKILLS_DIR=/путь/к/skills  curl -fsSL … | bash"
+  exit 1
+fi
 
 say "Найденные среды для установки:"
 for i in "${!CANDIDATES[@]}"; do
   mark=" (есть старая версия)"; [ -d "${CANDIDATES[$i]}/director" ] || mark=""
   printf '  %d) %s%s\n' "$((i+1))" "${CANDIDATES[$i]}" "$mark"
 done
-printf 'Куда ставить? номера через пробел, Enter = только 1 (%s): ' "$SKILLS_DIR"
-read -r PICKS
-[ -z "${PICKS// }" ] && PICKS="1"
+
+if [ -n "${DIRECTOR_TARGETS:-}" ]; then
+  PICKS="$DIRECTOR_TARGETS"
+  say "Цели из DIRECTOR_TARGETS: $PICKS"
+elif [ "${#CANDIDATES[@]}" -eq 1 ]; then
+  PICKS="1"
+  say "Среда одна — ставлю в неё: ${CANDIDATES[0]}"
+elif [ "$INTERACTIVE" = 1 ]; then
+  printf 'Куда ставить? номера через пробел, Enter = только 1 (%s): ' "${CANDIDATES[0]}"
+  read -r PICKS || PICKS=""
+  [ -z "${PICKS// }" ] && PICKS="1"
+else
+  PICKS="1"
+  say "Без терминала — ставлю в первую найденную среду: ${CANDIDATES[0]} (переопредели DIRECTOR_TARGETS)"
+fi
 
 # --- Атомарная замена: снимок → swap → откат при сбое --------------
 BK="$HOME/.director-backup/$(date +%Y%m%d-%H%M%S)"
@@ -155,17 +219,30 @@ install_to() {
   rm -rf "$olddir"
   say "→ $dst"
 }
+INSTALLED_COUNT=0
 for n in $PICKS; do
   case "$n" in
-    ''|*[!0-9]*) continue ;;
+    ''|*[!0-9]*) err "Пропущен нечисловой пункт: '$n'"; continue ;;
   esac
   idx=$((n-1))
-  [ "$idx" -ge 0 ] && [ "$idx" -lt "${#CANDIDATES[@]}" ] && install_to "${CANDIDATES[$idx]}" || err "Пропущен пункт $n"
+  if [ "$idx" -ge 0 ] && [ "$idx" -lt "${#CANDIDATES[@]}" ]; then
+    if install_to "${CANDIDATES[$idx]}"; then
+      INSTALLED_COUNT=$((INSTALLED_COUNT+1))
+    fi
+  else
+    err "Пункт $n вне списка (1..${#CANDIDATES[@]}) — пропущен."
+  fi
 done
 [ -d "$BK" ] && say "Снимок прошлых версий: $BK"
 
+if [ "$INSTALLED_COUNT" -eq 0 ]; then
+  err "Ничего не установлено: не выбрано ни одного корректного пункта (1..${#CANDIDATES[@]})."
+  err "Директор НЕ установлен. Запусти снова и укажи номер из списка."
+  exit 1
+fi
+
 # --- Готово --------------------------------------------------------
-say "Готово. Мастер-скилл 'director' установлен (тир: $TIER)."
+say "Готово. Мастер-скилл 'director' установлен в $INSTALLED_COUNT среду(-ы) (тир: $TIER)."
 cat <<EOF
 
 Дальше — в своём агенте (Claude Code / Hermes / Qwen Code / …):
