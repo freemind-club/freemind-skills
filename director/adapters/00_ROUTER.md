@@ -10,7 +10,6 @@
 |---------|-------|------|
 | `~/.claude/` + запуск из Claude Code / Desktop | Claude Code | [claude-code.md](claude-code.md) |
 | `hermes` в PATH / `~/.hermes/` / systemd `hermes-*` | Hermes | [hermes.md](hermes.md) |
-| `~/.openclaw/` / `openclaw` в PATH | OpenClaw | [openclaw.md](openclaw.md) |
 | `~/.cursor/` / `.clinerules` / `~/.codeium/windsurf/` | Cursor / Cline / Windsurf | [cursor-cline.md](cursor-cline.md) |
 | `codex` в PATH / `~/.codex/` | OpenAI Codex CLI | [codex-cli.md](codex-cli.md) |
 | `qwen` в PATH / `~/.qwen/` | Qwen Code CLI | [qwen-code.md](qwen-code.md) |
@@ -32,7 +31,6 @@
 |-------|--------|--------------|-----------------|-----------|
 | Claude Code | `SKILL.md` + `references/` | SessionStart-хук | полный (core/05) | `Task` |
 | Hermes | блок в `~/.hermes/SOUL.md` | сам при задаче | **нет** — протокол задачи | суб-агенты Hermes |
-| OpenClaw | блоки `AGENTS.md` + `USER.md` | сам | лёгкий | суб-агенты OpenClaw |
 | Cursor/Cline/Windsurf | блок в файле правил | сам (проектные правила) | лёгкий | нет |
 | Codex CLI | блок в `AGENTS.md` | сам | лёгкий (на задачу) | нет |
 | Qwen Code | блок в `QWEN.md` | сам | лёгкий | нет (или task-tool) |

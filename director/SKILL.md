@@ -2,7 +2,7 @@
 name: director
 description: Wizard that builds a personalized AI-"director" (delegating orchestrator with persistent memory, session protocols, safety rules, self-improvement) for the user's environment. Use when the user says "настрой директора" / "собери директора" / "поставь директора" / "set up my director" / "/director", or wants to install the FreeMind club director. Not for ordinary tasks. Re-run only to reconfigure.
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # director — мастер настройки AI-директора
@@ -36,7 +36,7 @@ metadata:
 
 ### Шаг 0. Промокод (обязательно)
 
-Показать бренд-блок FreeMind (текст → [BRAND.md](../BRAND.md), в рантайме — `references/BRAND.md`). Затем:
+Показать бренд-блок FreeMind (текст → [BRAND.md](BRAND.md), в рантайме — `references/BRAND.md`). Затем:
 
 > Директор — продукт клуба FreeMind. Введи промокод:
 
@@ -49,7 +49,7 @@ metadata:
 | `Promo` | `lite` |
 
 - Совпал (регистр не важен) → взять `tier`, идти дальше.
-- Не совпал / пусто → **стоп**, ничего не создавать. Показать блок «Получить доступ» из [BRAND.md](../BRAND.md):
+- Не совпал / пусто → **стоп**, ничего не создавать. Показать блок «Получить доступ» из [BRAND.md](BRAND.md):
   > Получить доступ: напиши Олегу → t.me/Lavrentev_Oleg · вступи в клуб → lavrentevoleg.ru/social/club · ты на интенсиве (NR) → код у Стаса.
 
 Если есть `~/.claude/skills/director/.activation.json` (от `install.sh`) не старше 24 ч — взять `tier` оттуда, не переспрашивать.
@@ -72,12 +72,12 @@ metadata:
 Определить **самому** (не спрашивать вслепую), затем подтвердить. Признаки → [adapters/00_ROUTER.md](adapters/00_ROUTER.md):
 
 ```bash
-ls -d ~/.claude ~/.hermes ~/.openclaw ~/.codex ~/.qwen ~/.cursor 2>/dev/null
-command -v hermes openclaw codex qwen 2>/dev/null
+ls -d ~/.claude ~/.hermes ~/.codex ~/.qwen ~/.cursor 2>/dev/null
+command -v hermes codex qwen 2>/dev/null
 ```
 
 - Одна среда → подтвердить у пользователя.
-- Несколько (напр. Claude Code + Hermes) → спросить, куда ставить; можно в несколько, память общая.
+- Несколько (напр. Claude Code + Hermes) → спросить, куда ставить; можно поставить в несколько сред. На `native`/`files` память у каждой среды своя. Общей она станет только после отдельного осознанного подключения общего хранилища (граф-память).
 - Ставим в n8n → адаптер `n8n-ai-agent` (интервью всё равно ведётся отсюда, результат — текст для ноды).
 - Мастер запущен НЕ из Claude Code (сам по себе в Hermes/Qwen/…) → интервью ведёт та среда; сборка та же.
 
@@ -90,7 +90,7 @@ command -v hermes openclaw codex qwen 2>/dev/null
 Создать `~/.director-backup/<YYYYMMDD-HHMMSS>/`:
 
 1. **Копии файлов, которые визард может тронуть** (только те, что реально существуют):
-   - конфиги MCP: `~/.claude/mcp.json`, `~/.claude/settings.json`, `~/.codex/config.toml`, `~/.qwen/settings.json`, OpenClaw/Cline mcp-конфиг
+   - конфиги MCP: `~/.claude/mcp.json`, `~/.claude/settings.json`, `~/.codex/config.toml`, `~/.qwen/settings.json`, Cline mcp-конфиг
    - инструкции агента: `~/.hermes/SOUL.md`, `~/.hermes/memories/USER.md`, `AGENTS.md`, `~/.claude/CLAUDE.md`, `QWEN.md`, `.cursor/rules/*`, `.cursorrules`, `.clinerules`, `.windsurf/rules/*`
    - прошлый директор: `~/.claude/skills/my-director/` целиком (и аналоги в других средах)
 2. **Дампы БД клиента**, к которым директор получит write-доступ (CRM, клиентская база — если это в списке инструментов): `pg_dump <db> | gzip > db_<name>.sql.gz`
@@ -113,7 +113,7 @@ command -v hermes openclaw codex qwen 2>/dev/null
 | Что искать | Как | Если есть — что делать |
 |-----------|-----|------------------------|
 | Существующий `my-director` / прошлая установка | `ls ~/.claude/skills/my-director` и аналоги в среде | Режим B (реконфиг), не пересбор. `journal.md`, `memory/` — не трогать |
-| MCP-серверы | `~/.claude/mcp.json`, `~/.codex/config.toml`, `~/.qwen/settings.json`, `hermes mcp list`, `openclaw` конфиг | **Слить**: добавить нужные серверы рядом с существующими, не переписывать файл |
+| MCP-серверы | `~/.claude/mcp.json`, `~/.codex/config.toml`, `~/.qwen/settings.json`, `hermes mcp list` | **Слить**: добавить нужные серверы рядом с существующими, не переписывать файл |
 | Инструкции агента | `~/.hermes/SOUL.md`, `AGENTS.md`, `CLAUDE.md`, `QWEN.md`, `.cursorrules` | Блок директора **в конец**, между маркерами. Существующий текст не трогать |
 | Граф-память (LightRAG / Postgres-brain) — если пользователь **сам** её развернул | `docker ps \| grep -E 'lightrag\|postgres'`, `~/lightrag/.env` | **Подключиться** (URL+ключ из `.env`), НЕ переустанавливать, НЕ пересоздавать `.env`. Визард её не ставит — это ручной апгрейд |
 | Другая память (mem0, файлы, Obsidian) | скилл `mem0`, `~/.claude/CLAUDE.md` на предмет блоков памяти | Отметить, спросить: оставить как есть / подключить как доп. источник recall |
@@ -152,7 +152,7 @@ command -v hermes openclaw codex qwen 2>/dev/null
    - Отметить в `profile.md`: «память: <native|files>. Граф-память — ручной апгрейд по потребности».
    - **Уже развёрнута граф-память** (нашли на Шаге 0.7, пользователь ставил сам через `mozg`) и пользователь хочет её подключить → 🔴 сначала проговорить приватность: «часть рабочих фактов будет уходить в этот сервис; где он физически — <localhost / твой VPS / клубный сервер>; мед./клиентские данные, секреты, чужую переписку туда не сохраняем без твоего отдельного разрешения». Согласие получено → взять `LIGHTRAG_SERVER_URL` + `LIGHTRAG_API_KEY` из существующего `~/lightrag/.env`, добавить MCP **рядом** с существующими, `MEMORY_BACKEND=lightrag`/`lightrag_postgres`. Ничего не переустанавливать, `.env` не пересоздавать.
 
-> **Апгрейд до граф-памяти — вне визарда.** Пользователь сам решает и ставит: `curl -fsSL https://raw.githubusercontent.com/freemind-club/freemind-setup/main/install.sh | bash -s mozg`. Директор её не ставит (Docker + сервер + сопровождение — осознанное решение). Подробно → [memory-setup/README.md](memory-setup/README.md).
+> **Апгрейд до граф-памяти — вне визарда.** Пользователь сам решает и ставит: модуль `mozg` репозитория `freemind-setup` (`github.com/freemind-club/freemind-setup`) — скачать `install.sh`, проверить код и SHA-256, запустить локально. Директор её не ставит (Docker + сервер + сопровождение — осознанное решение). Подробно → [memory-setup/README.md](memory-setup/README.md).
 
 **Блок 3 — Делегирование и модели** (для lite — только субагенты, пропустить)
 
@@ -232,16 +232,17 @@ command -v hermes openclaw codex qwen 2>/dev/null
 ### 🔴 Откат при провале
 
 **Любой сбой сборки** (память не поднялась, осталось `{{...}}`, данные разошлись с MANIFEST, ошибка на любом шаге после 0.6) →
-1. Запустить `~/.director-backup/<ts>/restore.sh` — вернуть всё как было.
-2. Проверить, что откат прошёл (файлы/MCP/таблицы = MANIFEST).
-3. Сказать {{USER_NAME}}: «Установка не удалась на шаге X — <причина>. Откатил всё к снимку <ts>. Ничего не потеряно.»
-4. Не оставлять полусобранного директора.
+1. Запустить `~/.director-backup/<ts>/restore.sh` — вернуть на место конфиги и файлы инструкций агента из снимка, снести полусобранного `my-director/`.
+2. Проверить восстановление: конфиги/файлы правил побайтово = `sha256` из `MANIFEST.md`, список MCP = MANIFEST, каталог директора убран.
+3. **БД клиента `restore.sh` не трогает** — если во время сборки был write-доступ и данные разошлись со `SELECT count(*)` из MANIFEST, восстановить вручную из дампа снимка (`db_<name>.sql.gz`) и сказать об этом отдельно.
+4. Сказать {{USER_NAME}}: «Установка не удалась на шаге X — <причина>. Из снимка <ts> восстановлено: <перечислить классы — конфиги, файлы правил>, сверено с MANIFEST. <БД: не затрагивалась / восстановлена вручную из дампа>.» Утверждать полную сохранность данных — только после сверки со снимком по всем классам MANIFEST (файлы, MCP, счётчики таблиц БД).
+5. Не оставлять полусобранного директора.
 
 ### Шаг 4. Автозагрузка + версия
 
 - Записать `VERSION` мастера (файл `VERSION` в корне этого скилла) рядом с директором.
 - **Claude Code:** SessionStart-хук → [templates/sessionstart-hook.md](templates/sessionstart-hook.md) (добавить, если JSON валиден и нет конфликта; иначе — инструкция).
-- **Hermes / OpenClaw / Cursor / Codex / Qwen:** среда читает свой файл правил сама — ничего не нужно.
+- **Hermes / Cursor / Codex / Qwen:** среда читает свой файл правил сама — ничего не нужно.
 - **n8n:** нода в воркфлоу.
 
 **Обновление** (в рантайм-директоре, на старте): сравнить свой `VERSION` с `~/.claude/skills/director/VERSION` (или клоном репо). Мастер новее → сказать {{USER_NAME}} один раз: «Директор обновился до vX — запусти `/director` для пересборки (данные и журнал сохранятся)». Не обновлять молча.
@@ -260,7 +261,7 @@ command -v hermes openclaw codex qwen 2>/dev/null
 
 - Claude Code → прогнать `SKILL.md` через `skill-creator` + `skill-conductor`, если есть.
 - Все среды → отчёт: что создано, где, как запускать, что проверить руками (MCP, ключи).
-- **В конце — блок «Успех» из [BRAND.md](../BRAND.md):**
+- **В конце — блок «Успех» из [BRAND.md](BRAND.md):**
   > Директор собран. Добро пожаловать в FreeMind. Всё про клуб и соцсети: lavrentevoleg.ru/social · вопросы Олегу: t.me/Lavrentev_Oleg
 
 ---

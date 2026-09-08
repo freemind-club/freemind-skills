@@ -7,10 +7,10 @@
 | Аспект | Как |
 |--------|-----|
 | Формат | `SKILL.md` с frontmatter (`name`, `description`) |
-| Куда | `~/.claude/skills/my-director/` |
+| Куда | `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/my-director/`. **Перед созданием — искать существующую установку рекурсивно** (`grep -rl` по frontmatter `name: my-director` \| `name: director-doctrine` в `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/`). Нашёл на нестандартном пути — это реконфиг существующей (обновить её), не создавать дубль. Нашёл несколько — показать пути, спросить. Не нашёл — чистая установка |
 | Автозагрузка | SessionStart-хук → [../templates/sessionstart-hook.md](../templates/sessionstart-hook.md) |
 | Вручную | `/my-director` |
-| MCP | `native`/`files` MCP не требуют — визард не трогает `~/.claude/mcp.json`. Граф-память (ручной апгрейд, вне визарда) — MCP добавляется **в существующий** конфиг рядом, не перезаписывая |
+| MCP | `native`/`files` MCP не требуют — визард не трогает `${CLAUDE_CONFIG_DIR:-~/.claude}/mcp.json`. Граф-память (ручной апгрейд, вне визарда) — MCP добавляется **в существующий** конфиг рядом, не перезаписывая |
 | Исполнители | субагенты (`Task`) + опц. свой endpoint → [../models/00_ROUTER.md](../models/00_ROUTER.md) |
 | Оркестратор (`SELF_MODEL`) | текущая модель Claude Code |
 | Протокол сессии | core/05 (полный) |
@@ -19,7 +19,7 @@
 ## Что генерит мастер
 
 ```text
-~/.claude/skills/my-director/
+${CLAUDE_CONFIG_DIR:-~/.claude}/skills/my-director/
 ├── SKILL.md          ← шаблон ниже, плейсхолдеры заменены
 ├── profile.md        ← ../templates/profile.md.tmpl
 ├── journal.md        ← ../templates/journal.md

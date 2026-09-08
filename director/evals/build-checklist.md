@@ -13,7 +13,7 @@
 
 - [ ] Нет `{{...}}` нигде: `grep -rl '{{' <путь директора>` → пусто
 - [ ] Frontmatter (file-based среды): `name` == имя папки, `description` заполнен, стабильная база + не только `{{USER_NAME}}`
-- [ ] `references/` = 6 файлов `core/00–05` + `models.md` + `skills.md` (для file-based)
+- [ ] `references/` (file-based среды: Claude Code, Qwen Code) = `core/00–05` + `models.md` + `skills.md`. В always-on средах без понятия «сессия» (Hermes, n8n AI Agent) `05-protocol.md` не применяется — вместо него протокол задачи/триггера; проверять по факту адаптера
 - [ ] `models.md` содержит только выбранные провайдеры, не все
 - [ ] `VERSION` записан
 - [ ] `profile.md` заполнен: среда, тир, промокод, память, SELF_MODEL, CHEAP_STACK, прод, тест-среда, связь

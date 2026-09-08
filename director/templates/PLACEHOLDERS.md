@@ -6,7 +6,7 @@
 
 | KEY | Откуда | Пример |
 |-----|--------|--------|
-| `ENVIRONMENT` | Шаг 0.5 | `claude-code` / `hermes` / `openclaw` / `cursor-cline` / `codex-cli` / `qwen-code` / `n8n-ai-agent` / `generic` |
+| `ENVIRONMENT` | Шаг 0.5 | `claude-code` / `hermes` / `cursor-cline` / `codex-cli` / `qwen-code` / `n8n-ai-agent` / `generic` |
 | `VERSION` | файл `VERSION` мастера | `1.0.0` |
 | `TIER` | Шаг 0 | `full` / `lite` / `trial` |
 | `PROMO_CODE` | Шаг 0 | `FreeMind` (записывается в profile для сверки постфактум) |
