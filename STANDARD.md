@@ -59,7 +59,7 @@ metadata:
 
 ## 4. Процесс обновления скилла
 
-1. Правка в источнике (папка скилла в репо `freemind-skills`, либо `04_projects/*` для локальных)
+1. Правка в источнике (папка скилла в репо `freemind-skills`, либо `02_projects/*` для локальных)
 2. **Bump версии** в frontmatter
 3. Запись в `CHANGELOG.md` / «История»
 4. `skill-conductor` (Mode 4 REVIEW / Mode 3 VALIDATE) — структура + триггеринг ок

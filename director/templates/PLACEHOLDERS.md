@@ -30,7 +30,7 @@
 | `PROJECT_PATH` | Блок 1 в4 | `/root/work/myproject` |
 | `PROJECT_GIT` / `PROJECT_GIT_LINE` | Блок 1 в4 | «да, remote github.com/user/repo» / строка или пусто |
 | `START_CONTEXT_FILES` / `START_CONTEXT_FILES_LIST` | Блок 1 + скан | `CLAUDE.md, STATUS.md, TODO.md` |
-| `INBOX_PATH` | Блок 1 / дефолт | `_inbox/` или «нет» |
+| `INBOX_PATH` | Блок 1 / дефолт | `06_inbox/` или «нет» |
 | `STATUS_FILES` | скан проекта | `STATUS.md, TODO.md, journal.md` |
 | `START_EXTRA` | Блок 3 в9 | `n8n health check через MCP` или «—» |
 
