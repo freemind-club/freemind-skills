@@ -10,5 +10,6 @@
 | [playwright-cli](playwright-cli/) | Браузерная автоматизация через Playwright | `#browser` `#testing` |
 | [github](github/) | GitHub: PR, issues, CI/CD, code review | `#github` `#git` `#devops` |
 | [code-god](code-god/) | Экспертный разбор кода: баги, безопасность, улучшения | `#codereview` `#security` |
+| [agent-therapist](agent-therapist/) | Диагностика и лечение поведенческих поломок у AI-агентов: паранойя, враньё, зависание | `#agents` `#debug` `#behavior` |
 
 ← [Все категории](../README.md)

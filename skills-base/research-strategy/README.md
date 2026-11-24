@@ -10,5 +10,6 @@
 | [research-design](research-design/) | Планирование исследования по фреймворку SPICE — реальные инсайты, не вода | `#research` `#framework` |
 | [qual-research-design](qual-research-design/) | Сценарий интервью или фокус-группы, обработка результатов | `#research` `#interviews` `#qualitative` |
 | [segmentation-hypotheses](segmentation-hypotheses/) | Сегментация аудитории по 28 методам Gopractice — самые платёжеспособные | `#segmentation` `#audience` `#marketing` |
+| [mom-test-questions](mom-test-questions/) | Вопросы «Спроси маму» для разговора с владельцем бизнеса: факты о прошлом, а не мнения | `#custdev` `#interview` `#business` |
 
 ← [Все категории](../README.md)

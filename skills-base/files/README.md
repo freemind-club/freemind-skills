@@ -7,5 +7,6 @@
 | [docx](docx/) | Создание или разбор Word-документа | `#docx` `#office` |
 | [xlsx](xlsx/) | Excel и CSV: формулы, анализ, преобразования | `#excel` `#csv` `#data` |
 | [nano-pdf](nano-pdf/) | Извлечение текста и данных из PDF | `#pdf` `#extraction` |
+| [study-commands](study-commands/) | 50 коротких команд для изучения документа: конспект, карточки, разбор, план | `#study` `#documents` `#learning` |
 
 ← [Все категории](../README.md)

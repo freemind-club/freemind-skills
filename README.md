@@ -23,7 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/freemind-club/freemind-skills/main/
 | Раздел | Что внутри |
 |--------|-----------|
 | [`gorlyshko/`](gorlyshko/) | **Горлышко** — диагноз дела специалиста по 5 цифрам: где теряются деньги и время, гипотезы, что проверить, развилка «агент или человек». Ставится одной командой или работает промптом в любой нейросети |
-| [`skills-base/`](skills-base/) | 33 базовых скилла по 8 категориям — [посмотреть все](skills-base/README.md) |
+| [`skills-base/`](skills-base/) | 38 базовых скиллов по 8 категориям — [посмотреть все](skills-base/README.md) |
 | [`prompts/`](prompts/) | Базовые промпты: контент, исследования, боты |
 | [`discoveries/`](discoveries/) | Внешние находки — оценённые репозитории/инструменты (Hermes-скиллы, agent-tooling) |
 | [`mcp/`](mcp/) | Шаблон .mcp.json конфига |
