@@ -43,7 +43,7 @@ fi
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║            🧠 FreeMind Installer                         ║"
-echo "║   github.com/freemind-club/freemind-skills          ║"
+echo "║   github.com/freemind-club/freemind-skills               ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "  Выбери что установить (можно несколько через пробел):"
