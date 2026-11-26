@@ -47,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/freemind-club/freemind-skills/main/
 ## Установка
 
 ```bash
-git clone https://github.com/lavrentev74-crypto/freemind-skills
+git clone https://github.com/freemind-club/freemind-skills
 cd freemind-skills
 bash install.sh
 ```

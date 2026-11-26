@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 #  FreeMind Installer
-#  github.com/lavrentev74-crypto/freemind-skills
+#  github.com/freemind-club/freemind-skills
 # ═══════════════════════════════════════════════════════════════
 #
 #  Использование:
@@ -43,7 +43,7 @@ fi
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║            🧠 FreeMind Installer                         ║"
-echo "║   github.com/lavrentev74-crypto/freemind-skills          ║"
+echo "║   github.com/freemind-club/freemind-skills          ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "  Выбери что установить (можно несколько через пробел):"
