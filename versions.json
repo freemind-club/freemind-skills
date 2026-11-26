@@ -1,0 +1,50 @@
+{
+ "updated": "2026-11-26",
+ "repo": "https://github.com/freemind-club/freemind-skills",
+ "skills": {
+  "agent-therapist": {
+   "version": "1.1.0",
+   "path": "skills-base/development/agent-therapist"
+  },
+  "director": {
+   "version": "1.4.0",
+   "path": "director"
+  },
+  "freemind-platforms": {
+   "version": "3.3.0",
+   "path": "skills-base/content-social/freemind-platforms"
+  },
+  "gerakl": {
+   "version": "0.10.0",
+   "path": "skills-base/memory-growth/gerakl"
+  },
+  "gorlyshko": {
+   "version": "0.5.0",
+   "path": "gorlyshko"
+  },
+  "lesson-summary": {
+   "version": "1.1.0",
+   "path": "skills-base/voice-transcription/lesson-summary"
+  },
+  "mom-test-questions": {
+   "version": "2.1.0",
+   "path": "skills-base/research-strategy/mom-test-questions"
+  },
+  "prostokvashino": {
+   "version": "0.4.0",
+   "path": "skills-base/development/prostokvashino"
+  },
+  "shorts-outliers": {
+   "version": "1.2.0",
+   "path": "skills-base/content-social/shorts-outliers"
+  },
+  "study-commands": {
+   "version": "1.1.0",
+   "path": "skills-base/files/study-commands"
+  },
+  "tg-audit": {
+   "version": "1.2.0",
+   "path": "skills-base/content-social/tg-audit"
+  }
+ }
+}
